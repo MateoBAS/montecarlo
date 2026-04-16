@@ -47,3 +47,14 @@ add_definitions(-std=gnu++14)
 
 # 5. Add subdirs
 add_subdirectory(src)
+
+# --- TESTS GLOBALES DE INTEGRACIÓN ---
+# 1. Creamos el ejecutable
+add_executable(integration_tests 
+    src/Integration/test_main.cpp 
+    src/Integration/test_acciones.cpp 
+)
+
+target_include_directories(integration_tests PRIVATE ${BOOST_ROOT})
+
+target_link_libraries(integration_tests Asset Portfolio Maths Metrics Random Boost::unit_test_framework)

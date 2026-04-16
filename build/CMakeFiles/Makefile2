@@ -62,10 +62,12 @@ CMAKE_BINARY_DIR = C:\Users\mateo\Universidad\Master\FinTech\TFM\montecarlo\buil
 # Directory level rules for the build root directory
 
 # The main recursive "all" target.
+all: CMakeFiles/integration_tests.dir/all
 all: src/all
 .PHONY : all
 
 # The main recursive "codegen" target.
+codegen: CMakeFiles/integration_tests.dir/codegen
 codegen: src/codegen
 .PHONY : codegen
 
@@ -74,6 +76,7 @@ preinstall: src/preinstall
 .PHONY : preinstall
 
 # The main recursive "clean" target.
+clean: CMakeFiles/integration_tests.dir/clean
 clean: src/clean
 .PHONY : clean
 
@@ -318,6 +321,42 @@ src/Random/tests/clean: src/Random/tests/CMakeFiles/test_random.dir/clean
 .PHONY : src/Random/tests/clean
 
 #=============================================================================
+# Target rules for target CMakeFiles/integration_tests.dir
+
+# All Build rule for target.
+CMakeFiles/integration_tests.dir/all: src/Asset/CMakeFiles/Asset.dir/all
+CMakeFiles/integration_tests.dir/all: src/Maths/CMakeFiles/Maths.dir/all
+CMakeFiles/integration_tests.dir/all: src/Metrics/CMakeFiles/Metrics.dir/all
+CMakeFiles/integration_tests.dir/all: src/Portfolio/CMakeFiles/Portfolio.dir/all
+CMakeFiles/integration_tests.dir/all: src/Random/CMakeFiles/Random.dir/all
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\integration_tests.dir\build.make CMakeFiles/integration_tests.dir/depend
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\integration_tests.dir\build.make CMakeFiles/integration_tests.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=C:\Users\mateo\Universidad\Master\FinTech\TFM\montecarlo\build\CMakeFiles --progress-num=15,16,17 "Built target integration_tests"
+.PHONY : CMakeFiles/integration_tests.dir/all
+
+# Build rule for subdir invocation for target.
+CMakeFiles/integration_tests.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start C:\Users\mateo\Universidad\Master\FinTech\TFM\montecarlo\build\CMakeFiles 17
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\Makefile2 CMakeFiles/integration_tests.dir/all
+	$(CMAKE_COMMAND) -E cmake_progress_start C:\Users\mateo\Universidad\Master\FinTech\TFM\montecarlo\build\CMakeFiles 0
+.PHONY : CMakeFiles/integration_tests.dir/rule
+
+# Convenience name for target.
+integration_tests: CMakeFiles/integration_tests.dir/rule
+.PHONY : integration_tests
+
+# codegen rule for target.
+CMakeFiles/integration_tests.dir/codegen:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\integration_tests.dir\build.make CMakeFiles/integration_tests.dir/codegen
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=C:\Users\mateo\Universidad\Master\FinTech\TFM\montecarlo\build\CMakeFiles --progress-num=15,16,17 "Finished codegen for target integration_tests"
+.PHONY : CMakeFiles/integration_tests.dir/codegen
+
+# clean rule for target.
+CMakeFiles/integration_tests.dir/clean:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\integration_tests.dir\build.make CMakeFiles/integration_tests.dir/clean
+.PHONY : CMakeFiles/integration_tests.dir/clean
+
+#=============================================================================
 # Target rules for target src/Asset/CMakeFiles/Asset.dir
 
 # All Build rule for target.
@@ -356,7 +395,7 @@ src/Asset/CMakeFiles/Asset.dir/clean:
 src/Asset/tests/CMakeFiles/test_asset.dir/all: src/Asset/CMakeFiles/Asset.dir/all
 	$(MAKE) $(MAKESILENT) -f src\Asset\tests\CMakeFiles\test_asset.dir\build.make src/Asset/tests/CMakeFiles/test_asset.dir/depend
 	$(MAKE) $(MAKESILENT) -f src\Asset\tests\CMakeFiles\test_asset.dir\build.make src/Asset/tests/CMakeFiles/test_asset.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=C:\Users\mateo\Universidad\Master\FinTech\TFM\montecarlo\build\CMakeFiles --progress-num=15,16 "Built target test_asset"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=C:\Users\mateo\Universidad\Master\FinTech\TFM\montecarlo\build\CMakeFiles --progress-num=18,19 "Built target test_asset"
 .PHONY : src/Asset/tests/CMakeFiles/test_asset.dir/all
 
 # Build rule for subdir invocation for target.
@@ -373,7 +412,7 @@ test_asset: src/Asset/tests/CMakeFiles/test_asset.dir/rule
 # codegen rule for target.
 src/Asset/tests/CMakeFiles/test_asset.dir/codegen:
 	$(MAKE) $(MAKESILENT) -f src\Asset\tests\CMakeFiles\test_asset.dir\build.make src/Asset/tests/CMakeFiles/test_asset.dir/codegen
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=C:\Users\mateo\Universidad\Master\FinTech\TFM\montecarlo\build\CMakeFiles --progress-num=15,16 "Finished codegen for target test_asset"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=C:\Users\mateo\Universidad\Master\FinTech\TFM\montecarlo\build\CMakeFiles --progress-num=18,19 "Finished codegen for target test_asset"
 .PHONY : src/Asset/tests/CMakeFiles/test_asset.dir/codegen
 
 # clean rule for target.
@@ -420,7 +459,7 @@ src/Maths/CMakeFiles/Maths.dir/clean:
 src/Maths/tests/CMakeFiles/test_maths.dir/all: src/Maths/CMakeFiles/Maths.dir/all
 	$(MAKE) $(MAKESILENT) -f src\Maths\tests\CMakeFiles\test_maths.dir\build.make src/Maths/tests/CMakeFiles/test_maths.dir/depend
 	$(MAKE) $(MAKESILENT) -f src\Maths\tests\CMakeFiles\test_maths.dir\build.make src/Maths/tests/CMakeFiles/test_maths.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=C:\Users\mateo\Universidad\Master\FinTech\TFM\montecarlo\build\CMakeFiles --progress-num=17,18 "Built target test_maths"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=C:\Users\mateo\Universidad\Master\FinTech\TFM\montecarlo\build\CMakeFiles --progress-num=20,21 "Built target test_maths"
 .PHONY : src/Maths/tests/CMakeFiles/test_maths.dir/all
 
 # Build rule for subdir invocation for target.
@@ -437,7 +476,7 @@ test_maths: src/Maths/tests/CMakeFiles/test_maths.dir/rule
 # codegen rule for target.
 src/Maths/tests/CMakeFiles/test_maths.dir/codegen:
 	$(MAKE) $(MAKESILENT) -f src\Maths\tests\CMakeFiles\test_maths.dir\build.make src/Maths/tests/CMakeFiles/test_maths.dir/codegen
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=C:\Users\mateo\Universidad\Master\FinTech\TFM\montecarlo\build\CMakeFiles --progress-num=17,18 "Finished codegen for target test_maths"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=C:\Users\mateo\Universidad\Master\FinTech\TFM\montecarlo\build\CMakeFiles --progress-num=20,21 "Finished codegen for target test_maths"
 .PHONY : src/Maths/tests/CMakeFiles/test_maths.dir/codegen
 
 # clean rule for target.
@@ -484,7 +523,7 @@ src/Metrics/CMakeFiles/Metrics.dir/clean:
 src/Metrics/tests/CMakeFiles/test_metrics.dir/all: src/Metrics/CMakeFiles/Metrics.dir/all
 	$(MAKE) $(MAKESILENT) -f src\Metrics\tests\CMakeFiles\test_metrics.dir\build.make src/Metrics/tests/CMakeFiles/test_metrics.dir/depend
 	$(MAKE) $(MAKESILENT) -f src\Metrics\tests\CMakeFiles\test_metrics.dir\build.make src/Metrics/tests/CMakeFiles/test_metrics.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=C:\Users\mateo\Universidad\Master\FinTech\TFM\montecarlo\build\CMakeFiles --progress-num=19,20 "Built target test_metrics"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=C:\Users\mateo\Universidad\Master\FinTech\TFM\montecarlo\build\CMakeFiles --progress-num=22,23 "Built target test_metrics"
 .PHONY : src/Metrics/tests/CMakeFiles/test_metrics.dir/all
 
 # Build rule for subdir invocation for target.
@@ -501,7 +540,7 @@ test_metrics: src/Metrics/tests/CMakeFiles/test_metrics.dir/rule
 # codegen rule for target.
 src/Metrics/tests/CMakeFiles/test_metrics.dir/codegen:
 	$(MAKE) $(MAKESILENT) -f src\Metrics\tests\CMakeFiles\test_metrics.dir\build.make src/Metrics/tests/CMakeFiles/test_metrics.dir/codegen
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=C:\Users\mateo\Universidad\Master\FinTech\TFM\montecarlo\build\CMakeFiles --progress-num=19,20 "Finished codegen for target test_metrics"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=C:\Users\mateo\Universidad\Master\FinTech\TFM\montecarlo\build\CMakeFiles --progress-num=22,23 "Finished codegen for target test_metrics"
 .PHONY : src/Metrics/tests/CMakeFiles/test_metrics.dir/codegen
 
 # clean rule for target.
@@ -549,7 +588,7 @@ src/Portfolio/tests/CMakeFiles/test_portfolio.dir/all: src/Asset/CMakeFiles/Asse
 src/Portfolio/tests/CMakeFiles/test_portfolio.dir/all: src/Portfolio/CMakeFiles/Portfolio.dir/all
 	$(MAKE) $(MAKESILENT) -f src\Portfolio\tests\CMakeFiles\test_portfolio.dir\build.make src/Portfolio/tests/CMakeFiles/test_portfolio.dir/depend
 	$(MAKE) $(MAKESILENT) -f src\Portfolio\tests\CMakeFiles\test_portfolio.dir\build.make src/Portfolio/tests/CMakeFiles/test_portfolio.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=C:\Users\mateo\Universidad\Master\FinTech\TFM\montecarlo\build\CMakeFiles --progress-num=21,22 "Built target test_portfolio"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=C:\Users\mateo\Universidad\Master\FinTech\TFM\montecarlo\build\CMakeFiles --progress-num=24,25 "Built target test_portfolio"
 .PHONY : src/Portfolio/tests/CMakeFiles/test_portfolio.dir/all
 
 # Build rule for subdir invocation for target.
@@ -566,7 +605,7 @@ test_portfolio: src/Portfolio/tests/CMakeFiles/test_portfolio.dir/rule
 # codegen rule for target.
 src/Portfolio/tests/CMakeFiles/test_portfolio.dir/codegen:
 	$(MAKE) $(MAKESILENT) -f src\Portfolio\tests\CMakeFiles\test_portfolio.dir\build.make src/Portfolio/tests/CMakeFiles/test_portfolio.dir/codegen
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=C:\Users\mateo\Universidad\Master\FinTech\TFM\montecarlo\build\CMakeFiles --progress-num=21,22 "Finished codegen for target test_portfolio"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=C:\Users\mateo\Universidad\Master\FinTech\TFM\montecarlo\build\CMakeFiles --progress-num=24,25 "Finished codegen for target test_portfolio"
 .PHONY : src/Portfolio/tests/CMakeFiles/test_portfolio.dir/codegen
 
 # clean rule for target.
@@ -614,7 +653,7 @@ src/Random/tests/CMakeFiles/test_random.dir/all: src/Maths/CMakeFiles/Maths.dir/
 src/Random/tests/CMakeFiles/test_random.dir/all: src/Random/CMakeFiles/Random.dir/all
 	$(MAKE) $(MAKESILENT) -f src\Random\tests\CMakeFiles\test_random.dir\build.make src/Random/tests/CMakeFiles/test_random.dir/depend
 	$(MAKE) $(MAKESILENT) -f src\Random\tests\CMakeFiles\test_random.dir\build.make src/Random/tests/CMakeFiles/test_random.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=C:\Users\mateo\Universidad\Master\FinTech\TFM\montecarlo\build\CMakeFiles --progress-num=23,24 "Built target test_random"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=C:\Users\mateo\Universidad\Master\FinTech\TFM\montecarlo\build\CMakeFiles --progress-num=26,27 "Built target test_random"
 .PHONY : src/Random/tests/CMakeFiles/test_random.dir/all
 
 # Build rule for subdir invocation for target.
@@ -631,7 +670,7 @@ test_random: src/Random/tests/CMakeFiles/test_random.dir/rule
 # codegen rule for target.
 src/Random/tests/CMakeFiles/test_random.dir/codegen:
 	$(MAKE) $(MAKESILENT) -f src\Random\tests\CMakeFiles\test_random.dir\build.make src/Random/tests/CMakeFiles/test_random.dir/codegen
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=C:\Users\mateo\Universidad\Master\FinTech\TFM\montecarlo\build\CMakeFiles --progress-num=23,24 "Finished codegen for target test_random"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=C:\Users\mateo\Universidad\Master\FinTech\TFM\montecarlo\build\CMakeFiles --progress-num=26,27 "Finished codegen for target test_random"
 .PHONY : src/Random/tests/CMakeFiles/test_random.dir/codegen
 
 # clean rule for target.

@@ -1,3 +1,0 @@
-C:\mingw64\bin\cmake.exe -E rm -f CMakeFiles\Random.dir/objects.a
-C:\mingw64\bin\ar.exe qc CMakeFiles\Random.dir/objects.a @CMakeFiles\Random.dir\objects1.rsp
-C:\mingw64\bin\c++.exe -shared -o C:\Users\mateo\Universidad\Master\FinTech\TFM\montecarlo\build\libRandom.dll -Wl,--out-implib,C:\Users\mateo\Universidad\Master\FinTech\TFM\montecarlo\build\libRandom.dll.a -Wl,--major-image-version,0,--minor-image-version,0 -Wl,--whole-archive CMakeFiles\Random.dir/objects.a -Wl,--no-whole-archive @CMakeFiles\Random.dir\linkLibs.rsp

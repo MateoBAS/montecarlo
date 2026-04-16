@@ -126,6 +126,19 @@ depend:
 .PHONY : depend
 
 #=============================================================================
+# Target rules for targets named integration_tests
+
+# Build rule for target.
+integration_tests: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\Makefile2 integration_tests
+.PHONY : integration_tests
+
+# fast build rule for target.
+integration_tests/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\integration_tests.dir\build.make CMakeFiles/integration_tests.dir/build
+.PHONY : integration_tests/fast
+
+#=============================================================================
 # Target rules for targets named Asset
 
 # Build rule for target.
@@ -255,6 +268,54 @@ test_random/fast:
 	$(MAKE) $(MAKESILENT) -f src\Random\tests\CMakeFiles\test_random.dir\build.make src/Random/tests/CMakeFiles/test_random.dir/build
 .PHONY : test_random/fast
 
+src/Integration/test_acciones.obj: src/Integration/test_acciones.cpp.obj
+.PHONY : src/Integration/test_acciones.obj
+
+# target to build an object file
+src/Integration/test_acciones.cpp.obj:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\integration_tests.dir\build.make CMakeFiles/integration_tests.dir/src/Integration/test_acciones.cpp.obj
+.PHONY : src/Integration/test_acciones.cpp.obj
+
+src/Integration/test_acciones.i: src/Integration/test_acciones.cpp.i
+.PHONY : src/Integration/test_acciones.i
+
+# target to preprocess a source file
+src/Integration/test_acciones.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\integration_tests.dir\build.make CMakeFiles/integration_tests.dir/src/Integration/test_acciones.cpp.i
+.PHONY : src/Integration/test_acciones.cpp.i
+
+src/Integration/test_acciones.s: src/Integration/test_acciones.cpp.s
+.PHONY : src/Integration/test_acciones.s
+
+# target to generate assembly for a file
+src/Integration/test_acciones.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\integration_tests.dir\build.make CMakeFiles/integration_tests.dir/src/Integration/test_acciones.cpp.s
+.PHONY : src/Integration/test_acciones.cpp.s
+
+src/Integration/test_main.obj: src/Integration/test_main.cpp.obj
+.PHONY : src/Integration/test_main.obj
+
+# target to build an object file
+src/Integration/test_main.cpp.obj:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\integration_tests.dir\build.make CMakeFiles/integration_tests.dir/src/Integration/test_main.cpp.obj
+.PHONY : src/Integration/test_main.cpp.obj
+
+src/Integration/test_main.i: src/Integration/test_main.cpp.i
+.PHONY : src/Integration/test_main.i
+
+# target to preprocess a source file
+src/Integration/test_main.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\integration_tests.dir\build.make CMakeFiles/integration_tests.dir/src/Integration/test_main.cpp.i
+.PHONY : src/Integration/test_main.cpp.i
+
+src/Integration/test_main.s: src/Integration/test_main.cpp.s
+.PHONY : src/Integration/test_main.s
+
+# target to generate assembly for a file
+src/Integration/test_main.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\integration_tests.dir\build.make CMakeFiles/integration_tests.dir/src/Integration/test_main.cpp.s
+.PHONY : src/Integration/test_main.cpp.s
+
 # Help Target
 help:
 	@echo The following are some of the valid targets for this Makefile:
@@ -269,11 +330,18 @@ help:
 	@echo ... Metrics
 	@echo ... Portfolio
 	@echo ... Random
+	@echo ... integration_tests
 	@echo ... test_asset
 	@echo ... test_maths
 	@echo ... test_metrics
 	@echo ... test_portfolio
 	@echo ... test_random
+	@echo ... src/Integration/test_acciones.obj
+	@echo ... src/Integration/test_acciones.i
+	@echo ... src/Integration/test_acciones.s
+	@echo ... src/Integration/test_main.obj
+	@echo ... src/Integration/test_main.i
+	@echo ... src/Integration/test_main.s
 .PHONY : help
 
 
