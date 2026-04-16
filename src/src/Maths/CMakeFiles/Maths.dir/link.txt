@@ -1,0 +1,3 @@
+C:\mingw64\bin\cmake.exe -E rm -f CMakeFiles\Maths.dir/objects.a
+C:\mingw64\bin\ar.exe qc CMakeFiles\Maths.dir/objects.a @CMakeFiles\Maths.dir\objects1.rsp
+C:\mingw64\bin\c++.exe -shared -o C:\Users\mateo\Universidad\Master\FinTech\TFM\montecarlo\build\libMaths.dll -Wl,--out-implib,C:\Users\mateo\Universidad\Master\FinTech\TFM\montecarlo\build\libMaths.dll.a -Wl,--major-image-version,0,--minor-image-version,0 -Wl,--whole-archive CMakeFiles\Maths.dir/objects.a -Wl,--no-whole-archive @CMakeFiles\Maths.dir\linkLibs.rsp

@@ -1,0 +1,1 @@
+ "C:/boost_1_81_0/stage/lib/libboost_unit_test_framework-mgw15-mt-x64-1_81.a" C:/Users/mateo/Universidad/Master/FinTech/TFM/montecarlo/build/libMetrics.dll.a -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32 
