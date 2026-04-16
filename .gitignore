@@ -1,0 +1,17 @@
+# ==========================================
+# Ignorar carpetas de compilación
+# ==========================================
+build/
+CMakeCache.txt
+CMakeFiles/
+
+# ==========================================
+# Ignorar configuraciones del editor
+# ==========================================
+.vscode/
+
+# ==========================================
+# Ignorar archivos temporales de Windows/Mac
+# ==========================================
+.DS_Store
+Thumbs.db
