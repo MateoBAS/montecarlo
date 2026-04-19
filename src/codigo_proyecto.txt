@@ -1,0 +1,929 @@
+
+================================================================================
+ ARCHIVO: ./Asset\Asset.h
+================================================================================
+
+#pragma once
+#include <string>
+#include <vector>
+#include <utility> // Para std::move
+
+class Asset {
+protected:
+    std::string name;
+    double initialPrice;
+
+public:
+    Asset(std::string name, double initialPrice) 
+        : name(std::move(name)), initialPrice(initialPrice) {}
+        
+    virtual ~Asset() = default; 
+
+    std::string getName() const { return name; }
+    double getInitialPrice() const { return initialPrice; }
+    
+    virtual std::vector<double> generatePath(double totalTime, int numSteps, const std::vector<double>& Zs) const = 0; // El =0 indica que tendremos que implementar esta función en las clases hijas obligatoriamente
+};
+
+
+================================================================================
+ ARCHIVO: ./Asset\BarrierOption.cpp
+================================================================================
+
+#include "BarrierOption.h"
+#include <cmath>
+
+BarrierOption::BarrierOption(std::string name, double optionPremium, double underlyingInitialPrice, 
+                             double strike, double barrier, double drift, double volatility)
+    : Asset(std::move(name), optionPremium), underlyingInitialPrice(underlyingInitialPrice), 
+      strike(strike), barrier(barrier), drift(drift), volatility(volatility) {}
+
+std::vector<double> BarrierOption::generatePath(double totalTime, int numSteps, const std::vector<double>& Zs) const {
+    std::vector<double> path;
+    path.reserve(numSteps + 1); 
+    
+    // El primer valor del path es el coste (prima)
+    path.push_back(getInitialPrice()); 
+    
+    double dt = totalTime / numSteps;
+    double variance_penalty = 0.5 * volatility * volatility;
+    double drift_term = (drift - variance_penalty) * dt;
+    double vol_term = volatility * std::sqrt(dt);
+    
+    double currentUnderlyingPrice = underlyingInitialPrice;
+    bool knockedOut = false;
+    
+    // 1. Simulamos la trayectoria paso a paso
+    for (int i = 0; i < numSteps; ++i) {
+        double exponent = drift_term + vol_term * Zs[i];
+        currentUnderlyingPrice *= std::exp(exponent);
+        
+        // Comprobamos si el subyacente ha tocado o superado la barrera (Up-and-Out)
+        if (currentUnderlyingPrice >= barrier) {
+            knockedOut = true;
+        }
+        
+        path.push_back(currentUnderlyingPrice); 
+    }
+    
+    // 2. Calculamos el Payoff
+    double payoff = 0.0;
+    
+    // Si NO ha tocado la barrera, paga como una Call estándar
+    if (!knockedOut) {
+        double finalUnderlyingPrice = path.back();
+        payoff = std::max(finalUnderlyingPrice - strike, 0.0);
+    }
+    // Si knockedOut es true, el payoff se queda en 0.0 automáticamente
+    
+    // 3. Reemplazamos el último valor con el pago real a vencimiento
+    path.back() = payoff;
+    
+    return path;
+}
+
+
+================================================================================
+ ARCHIVO: ./Asset\BarrierOption.h
+================================================================================
+
+#pragma once
+#include "Asset.h"
+#include <algorithm>
+
+class BarrierOption : public Asset {
+private:
+    double underlyingInitialPrice;
+    double strike;
+    double barrier;
+    double drift;
+    double volatility;
+
+public:
+    BarrierOption(std::string name, double optionPremium, double underlyingInitialPrice, 
+                  double strike, double barrier, double drift, double volatility);
+
+    std::vector<double> generatePath(double totalTime, int numSteps, const std::vector<double>& Zs) const override;
+};
+
+
+================================================================================
+ ARCHIVO: ./Asset\CouponBond.cpp
+================================================================================
+
+#include "CouponBond.h"
+#include <cmath>
+
+CouponBond::CouponBond(std::string name, double faceValue, double couponRate, 
+                       double maturity, double currentYTM, double yieldVol)
+    : Asset(name, 0.0), faceValue(faceValue), couponRate(couponRate), 
+      maturity(maturity), currentYTM(currentYTM), yieldVol(yieldVol) {
+    
+    // Calculamos el precio sucio inicial del bono
+    this->initialPrice = calculatePrice(currentYTM, maturity);
+}
+
+double CouponBond::calculatePrice(double yield, double timeToMaturity) const {
+    double price = 0.0;
+    int numCoupons = static_cast<int>(std::floor(timeToMaturity));
+    double fractionalTime = timeToMaturity - numCoupons;
+    double couponPayment = faceValue * couponRate;
+
+    // Descontamos todos los cupones futuros
+    for (int i = 1; i <= numCoupons; ++i) {
+        price += couponPayment / std::pow(1.0 + yield, i + fractionalTime);
+    }
+    // Descontamos el pago del principal final
+    price += faceValue / std::pow(1.0 + yield, numCoupons + fractionalTime);
+    
+    return price;
+}
+
+std::vector<double> CouponBond::generatePath(double totalTime, int numSteps, const std::vector<double>& Zs) const {
+    std::vector<double> path;
+    path.push_back(getInitialPrice());
+
+    double dt = totalTime / numSteps;
+    double simulatedYTM = currentYTM;
+
+    // 1. Simulamos el movimiento de la TIR del mercado (Normal simple)
+    for (int i = 0; i < numSteps; ++i) {
+        simulatedYTM += yieldVol * std::sqrt(dt) * Zs[i];
+    }
+
+    // 2. Calculamos el tiempo que quedará a vencimiento tras la simulación
+    double timeRemaining = maturity - totalTime;
+    
+    // 3. Calculamos el nuevo precio del bono con los tipos alterados
+    double finalPrice = calculatePrice(simulatedYTM, timeRemaining);
+
+    // Solo nos interesa el precio final para nuestra arquitectura actual
+    path.push_back(finalPrice);
+
+    return path;
+}
+
+
+================================================================================
+ ARCHIVO: ./Asset\CouponBond.h
+================================================================================
+
+#pragma once
+#include "Asset.h"
+#include <vector>
+
+class CouponBond : public Asset {
+private:
+    double faceValue;  // Valor nominal (ej. 1000 EUR)
+    double couponRate; // Tasa del cupón anual (ej. 0.03 para 3%)
+    double maturity;   // Años hasta el vencimiento
+    double currentYTM; // TIR o tipo de interés actual del mercado
+    double yieldVol;   // Volatilidad de los tipos de interés
+
+    double calculatePrice(double yield, double timeToMaturity) const;
+
+public:
+    CouponBond(std::string name, double faceValue, double couponRate, 
+               double maturity, double currentYTM, double yieldVol);
+               
+    std::vector<double> generatePath(double totalTime, int numSteps, const std::vector<double>& Zs) const override;
+};
+
+
+================================================================================
+ ARCHIVO: ./Asset\EuropeanOption.cpp
+================================================================================
+
+#include "EuropeanOption.h"
+#include <cmath>
+
+EuropeanOption::EuropeanOption(std::string name, double optionPremium, double underlyingInitialPrice, 
+                               double strike, double drift, double volatility, OptionType type)
+    : Asset(std::move(name), optionPremium), underlyingInitialPrice(underlyingInitialPrice), 
+      strike(strike), drift(drift), volatility(volatility), type(type) {}
+
+std::vector<double> EuropeanOption::generatePath(double totalTime, int numSteps, const std::vector<double>& Zs) const {
+    std::vector<double> path;
+    path.reserve(numSteps + 1); 
+    
+    // El primer valor de nuestro path de rentabilidad es el coste de la opción
+    path.push_back(getInitialPrice()); 
+    
+    double dt = totalTime / numSteps;
+    double variance_penalty = 0.5 * volatility * volatility;
+    double drift_term = (drift - variance_penalty) * dt;
+    double vol_term = volatility * std::sqrt(dt);
+    
+    double currentUnderlyingPrice = underlyingInitialPrice;
+    
+    // 1. Simulamos la trayectoria del activo subyacente
+    for (int i = 0; i < numSteps; ++i) {
+        double exponent = drift_term + vol_term * Zs[i];
+        currentUnderlyingPrice *= std::exp(exponent);
+        
+        // Rellenamos el path con el subyacente de momento
+        path.push_back(currentUnderlyingPrice); 
+    }
+    
+    // 2. Extraemos el precio final del subyacente (S_T)
+    double finalUnderlyingPrice = path.back();
+    double payoff = 0.0;
+    
+    // 3. Aplicamos la fórmula del derivado
+    if (type == OptionType::Call) {
+        payoff = std::max(finalUnderlyingPrice - strike, 0.0);
+    } else {
+        payoff = std::max(strike - finalUnderlyingPrice, 0.0);
+    }
+    
+    // 4. Reemplazamos el último valor del path con el pago real a vencimiento
+    // Así, cuando Portfolio mire path.back(), verá el valor de la opción, no de la acción.
+    path.back() = payoff;
+    
+    return path;
+}
+
+
+================================================================================
+ ARCHIVO: ./Asset\EuropeanOption.h
+================================================================================
+
+#pragma once
+#include "Asset.h"
+#include <algorithm>
+
+enum class OptionType { Call, Put };
+
+class EuropeanOption : public Asset {
+private:
+    double underlyingInitialPrice;
+    double strike;
+    double drift;
+    double volatility;
+    OptionType type;
+
+public:
+    EuropeanOption(std::string name, double optionPremium, double underlyingInitialPrice, 
+                   double strike, double drift, double volatility, OptionType type);
+
+    std::vector<double> generatePath(double totalTime, int numSteps, const std::vector<double>& Zs) const override;
+};
+
+
+================================================================================
+ ARCHIVO: ./Asset\GBMAsset.cpp
+================================================================================
+
+#include "GBMAsset.h"
+#include <cmath>
+
+GBMAsset::GBMAsset(std::string name, double initialPrice, double drift, double volatility)
+    : Asset(std::move(name), initialPrice), drift(drift), volatility(volatility) {}
+
+std::vector<double> GBMAsset::generatePath(double totalTime, int numSteps, const std::vector<double>& Zs) const {
+    std::vector<double> path;
+    path.reserve(numSteps + 1); 
+    
+    path.push_back(initialPrice); 
+    
+    double dt = totalTime / numSteps;
+    double variance_penalty = 0.5 * volatility * volatility;
+    double drift_term = (drift - variance_penalty) * dt;
+    double vol_term = volatility * std::sqrt(dt);
+    
+    double currentPrice = initialPrice;
+    
+    for (int i = 0; i < numSteps; ++i) {
+        double exponent = drift_term + vol_term * Zs[i];
+        currentPrice *= std::exp(exponent);
+        path.push_back(currentPrice);
+    }
+    
+    return path;
+}
+
+
+================================================================================
+ ARCHIVO: ./Asset\GBMAsset.h
+================================================================================
+
+#pragma once
+#include "Asset.h"
+
+class GBMAsset : public Asset {
+private:
+    double drift;
+    double volatility;
+
+public:
+    GBMAsset(std::string name, double initialPrice, double drift, double volatility);
+
+    std::vector<double> generatePath(double totalTime, int numSteps, const std::vector<double>& Zs) const override;
+};
+
+
+================================================================================
+ ARCHIVO: ./Integration\test_acciones.cpp
+================================================================================
+
+#include <boost/test/unit_test.hpp>
+#include <iostream>
+#include <fstream>
+#include <chrono>
+#include <vector>
+#include <memory>
+#include <numeric>
+#include <cmath>
+#include <thread>
+#include <Eigen/Dense>
+
+#include "MontecarloEngine/MontecarloEngine.h"
+#include "Portfolio/Portfolio.h"
+#include "Metrics/RiskCalculator.h"
+#include "Asset/GBMAsset.h"
+
+BOOST_AUTO_TEST_SUITE(Escenario_Rendimiento_Estadistico)
+
+BOOST_AUTO_TEST_CASE(Amdahl_Con_Incertidumbre) {
+    std::cout << "--> Iniciando Benchmark Estadistico de Amdahl...\n";
+    
+    Portfolio cartera;
+    auto techA = std::make_shared<GBMAsset>("TechA", 150.0, 0.05, 0.25);
+    auto techB = std::make_shared<GBMAsset>("TechB", 200.0, 0.08, 0.30);
+    cartera.addPosition(techA, 50.0);
+    cartera.addPosition(techB, 30.0);
+
+    SimConfig config;
+    config.totalSims = 100000; 
+    config.totalTime = 10.0 / 252.0;
+    config.numSteps = 10;
+    
+    Eigen::MatrixXd corr(2, 2);
+    corr << 1.0, 0.6, 0.6, 1.0;
+    config.corrMatrix = corr;
+
+    // PARÁMETROS ESTADÍSTICOS
+    const int maxHilos = std::thread::hardware_concurrency();
+    const int medidasPorPunto = 1000;
+    const int iteracionesCalentamiento = 25;
+    
+    std::string rutaCSV = "../graphics/amdahl_estadistico.csv";
+    std::ofstream archivo(rutaCSV);
+    
+    if (!archivo.is_open()) {
+        BOOST_FAIL("Fallo al crear el archivo CSV en ../graphics/");
+    }
+    
+    // Nueva cabecera con datos estadísticos
+    archivo << "Hilos,Tiempo_Medio_ms,Desviacion_ms\n";
+    
+    std::cout << "Mediciones por punto: " << medidasPorPunto << "\n";
+    std::cout << "Por favor, no uses el PC mientras se ejecuta este test...\n\n";
+
+    for (int hilos = 1; hilos <= maxHilos; ++hilos) {
+        config.numCores = hilos;
+        
+        // 1. FASE DE CALENTAMIENTO (Warm-up)
+        // Despierta los hilos del SO y llena la caché L1/L2/L3
+        for(int w = 0; w < iteracionesCalentamiento; ++w) {
+            MonteCarloEngine::run(cartera, config);
+        }
+
+        // 2. FASE DE MEDICIÓN
+        std::vector<double> tiempos(medidasPorPunto);
+        for (int m = 0; m < medidasPorPunto; ++m) {
+            auto inicio = std::chrono::high_resolution_clock::now();
+            
+            RiskCalculator report = MonteCarloEngine::run(cartera, config);
+            volatile double var = report.calculateVaR(0.99); // Evita que el compilador ignore el código
+            
+            auto fin = std::chrono::high_resolution_clock::now();
+            tiempos[m] = std::chrono::duration<double, std::milli>(fin - inicio).count();
+        }
+        
+        // 3. CÁLCULO ESTADÍSTICO (Media y Desviación Estándar)
+        double sumaTiempos = std::accumulate(tiempos.begin(), tiempos.end(), 0.0);
+        double media = sumaTiempos / medidasPorPunto;
+        
+        double sumaDiferenciasCuadrado = 0.0;
+        for (double t : tiempos) {
+            sumaDiferenciasCuadrado += (t - media) * (t - media);
+        }
+        double varianza = sumaDiferenciasCuadrado / (medidasPorPunto - 1); // Varianza muestral
+        double desviacionEstandar = std::sqrt(varianza);
+
+        archivo << hilos << "," << media << "," << desviacionEstandar << "\n";
+        
+        std::cout << "Hilos: " << hilos 
+                  << " | T_Medio: " << media << " ms"
+                  << " | StdDev: ±" << desviacionEstandar << " ms\n";
+                  
+        // 4. PREVENCIÓN DE ESTRANGULAMIENTO TÉRMICO (Cool-down)
+        // Damos 500ms al procesador para que disipe el calor antes de la siguiente tanda
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    }
+    
+    archivo.close();
+    BOOST_CHECK(true); 
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+
+================================================================================
+ ARCHIVO: ./Integration\test_main.cpp
+================================================================================
+
+#define BOOST_TEST_MODULE Mis_Tests_Globales
+#include <boost/test/unit_test.hpp>
+
+
+================================================================================
+ ARCHIVO: ./Maths\MathUtils.cpp
+================================================================================
+
+#include "MathUtils.h"
+#include <cmath>
+#include <stdexcept>
+
+double MathUtils::inverseNormalCDF(double p) {
+    if (p <= 0.0 || p >= 1.0) {
+        throw std::invalid_argument("La probabilidad debe estar estrictamente entre 0 y 1.");
+    }
+
+    const double a[] = { -3.969683028665376e+01,  2.209460984245205e+02,
+                         -2.759285104469687e+02,  1.383577518672690e+02,
+                         -3.066479806614716e+01,  2.506628277459239e+00 };
+    const double b[] = { -5.447609879822406e+01,  1.615858368580409e+02,
+                         -1.556989798598866e+02,  6.680131188771972e+01,
+                         -1.328068155288572e+01 };
+    const double c[] = { -7.784894002430293e-03, -3.223964580411365e-01,
+                         -2.400758277161838e+00, -2.549732539343734e+00,
+                          4.374664141464968e+00,  2.938163982698783e+00 };
+    const double d[] = {  7.784695709041462e-03,  3.224671290700398e-01,
+                          2.445134137142996e+00,  3.754408661907416e+00 };
+
+    double p_low = 0.02425;
+    double p_high = 1.0 - p_low;
+    double q, r, x;
+
+    if (p < p_low) {
+        q = std::sqrt(-2.0 * std::log(p));
+        x = (((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5]) /
+            ((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1.0);
+    } else if (p <= p_high) {
+        q = p - 0.5;
+        r = q * q;
+        x = (((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q /
+            (((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1.0);
+    } else {
+        q = std::sqrt(-2.0 * std::log(1.0 - p));
+        x = -(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5]) /
+             ((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1.0);
+    }
+    return x;
+}
+
+
+================================================================================
+ ARCHIVO: ./Maths\MathUtils.h
+================================================================================
+
+#ifndef MATH_UTILS_H
+#define MATH_UTILS_H
+
+class MathUtils {
+public:
+    static double inverseNormalCDF(double p);
+};
+
+#endif // MATH_UTILS_H
+
+
+================================================================================
+ ARCHIVO: ./Metrics\RiskCalculator.cpp
+================================================================================
+
+#include "RiskCalculator.h"
+#include <algorithm>
+#include <stdexcept>
+
+RiskCalculator::RiskCalculator(const std::vector<double>& simulatedPnLs) {
+    sortedPnLs = simulatedPnLs;
+    std::sort(sortedPnLs.begin(), sortedPnLs.end());
+}
+
+double RiskCalculator::calculateVaR(double confidenceLevel) const {
+    if (confidenceLevel <= 0.0 || confidenceLevel >= 1.0) {
+        throw std::invalid_argument("El nivel de confianza debe estar entre 0 y 1 (ej. 0.99)");
+    }
+
+    double alpha = 1.0 - confidenceLevel;
+    
+    size_t index = static_cast<size_t>(sortedPnLs.size() * alpha);
+
+    return sortedPnLs[index];
+}
+
+double RiskCalculator::calculateES(double confidenceLevel) const {
+    if (confidenceLevel <= 0.0 || confidenceLevel >= 1.0) {
+        throw std::invalid_argument("El nivel de confianza debe estar entre 0 y 1 (ej. 0.99)");
+    }
+
+    double alpha = 1.0 - confidenceLevel;
+    size_t index = static_cast<size_t>(sortedPnLs.size() * alpha);
+
+    if (index == 0) return sortedPnLs[0];
+
+    double sumOfTailLosses = 0.0;
+    for (size_t i = 0; i < index; ++i) {
+        sumOfTailLosses += sortedPnLs[i];
+    }
+
+    return sumOfTailLosses / index;
+}
+
+
+================================================================================
+ ARCHIVO: ./Metrics\RiskCalculator.h
+================================================================================
+
+#ifndef RISK_CALCULATOR_H
+#define RISK_CALCULATOR_H
+
+#include <vector>
+
+class RiskCalculator {
+private:
+    std::vector<double> sortedPnLs;
+
+public:
+    RiskCalculator(const std::vector<double>& simulatedPnLs);
+
+    double calculateVaR(double confidenceLevel) const;
+
+    double calculateES(double confidenceLevel) const;
+};
+
+#endif // RISK_CALCULATOR_H
+
+
+================================================================================
+ ARCHIVO: ./MontecarloEngine\MontecarloEngine.cpp
+================================================================================
+
+#include "MonteCarloEngine.h"
+#include <thread>
+#include <future>
+#include <random>
+
+RiskCalculator MonteCarloEngine::run(const Portfolio& portfolio, const SimConfig& config) {
+    // 1. AHORA SÍ USAMOS LA CONFIGURACIÓN DEL USUARIO
+    int numCores = config.numCores;
+    
+    // Fallback por si alguien llama al motor sin configurar los hilos
+    if (numCores <= 0) {
+        numCores = std::thread::hardware_concurrency();
+        if (numCores == 0) numCores = 4;
+    }
+
+    int simsPerCore = config.totalSims / numCores;
+
+    Eigen::MatrixXd L = config.corrMatrix.llt().matrixL();
+    std::vector<std::future<std::vector<double>>> futures;
+
+    for (int i = 0; i < numCores; ++i) {
+        futures.push_back(std::async(std::launch::async, MonteCarloEngine::runBatch, 
+                          simsPerCore, config.totalTime, config.numSteps, 
+                          std::ref(portfolio), std::ref(L), 1234 + i));
+    }
+
+    std::vector<double> allPnLs;
+    allPnLs.reserve(config.totalSims);
+    for (auto& f : futures) {
+        auto batch = f.get();
+        allPnLs.insert(allPnLs.end(), batch.begin(), batch.end());
+    }
+
+    return RiskCalculator(allPnLs);
+}
+
+std::vector<double> MonteCarloEngine::runBatch(int sims, double time, int steps, 
+                                              const Portfolio& port, const Eigen::MatrixXd& L, int seed) {
+    size_t numAssets = port.getNumAssets(); 
+    std::mt19937 gen(seed);
+    std::normal_distribution<double> dist(0.0, 1.0);
+    std::vector<double> results(sims);
+
+    // OPTIMIZACIÓN: Pre-asignamos la memoria UNA SOLA VEZ por hilo, fuera de los bucles.
+    // Así evitamos que los hilos se bloqueen pidiendo memoria al Sistema Operativo.
+    std::vector<std::vector<double>> Z(numAssets, std::vector<double>(steps));
+    Eigen::VectorXd indep(numAssets);
+    Eigen::VectorXd corr(numAssets);
+
+    for (int i = 0; i < sims; ++i) {
+        // Sobrescribimos la matriz Z en lugar de crearla de nuevo
+        for (int s = 0; s < steps; ++s) {
+            for (size_t a = 0; a < numAssets; ++a) {
+                indep(a) = dist(gen);
+            }
+            
+            corr = L * indep; // Eigen también recicla la memoria aquí
+            
+            for (size_t a = 0; a < numAssets; ++a) {
+                Z[a][s] = corr(a);
+            }
+        }
+        results[i] = port.simulatePathPnL(time, steps, Z); 
+    }
+    return results;
+}
+
+
+================================================================================
+ ARCHIVO: ./MontecarloEngine\MontecarloEngine.h
+================================================================================
+
+#ifndef MONTE_CARLO_ENGINE_H
+#define MONTE_CARLO_ENGINE_H
+
+#include <vector>
+#include <Eigen/Dense>
+#include "Portfolio/Portfolio.h"
+#include "Metrics/RiskCalculator.h"
+
+struct SimConfig {
+    int totalSims;
+    double totalTime;
+    int numSteps;
+    Eigen::MatrixXd corrMatrix;
+    int numCores;
+};
+
+class MonteCarloEngine {
+public:
+    // Este método centraliza toda la lógica que tenías en el main
+    static RiskCalculator run(const Portfolio& portfolio, const SimConfig& config);
+
+private:
+    // Función auxiliar para los lotes paralelos
+    static std::vector<double> runBatch(int sims, double time, int steps, 
+                                        const Portfolio& port, const Eigen::MatrixXd& L, int seed);
+};
+
+#endif
+
+
+================================================================================
+ ARCHIVO: ./Portfolio\Portfolio.cpp
+================================================================================
+
+#include "Portfolio.h"
+#include <stdexcept>
+
+void Portfolio::addPosition(std::shared_ptr<Asset> asset, double quantity) {
+    positions.push_back({asset, quantity});
+}
+
+double Portfolio::getInitialValue() const {
+    double totalValue = 0.0;
+    for (const auto& pos : positions) {
+        totalValue += pos.asset->getInitialPrice() * pos.quantity;
+    }
+    return totalValue;
+}
+
+size_t Portfolio::getNumAssets() const {
+    return positions.size();
+}
+
+double Portfolio::simulatePathPnL(double totalTime, int numSteps, const std::vector<std::vector<double>>& Z_matrix) const {
+    if (Z_matrix.size() != positions.size()) {
+        throw std::invalid_argument("El numero de filas en Z_matrix debe coincidir con los activos del portfolio.");
+    }
+
+    double futureValue = 0.0;
+    for (size_t i = 0; i < positions.size(); ++i) {
+        std::vector<double> path = positions[i].asset->generatePath(totalTime, numSteps, Z_matrix[i]);
+        
+        double finalPrice = path.back();
+        
+        futureValue += finalPrice * positions[i].quantity;
+    }
+
+    return futureValue - getInitialValue();
+}
+
+
+================================================================================
+ ARCHIVO: ./Portfolio\Portfolio.h
+================================================================================
+
+#pragma once
+#include <vector>
+#include <memory>
+#include "../Asset/Asset.h"
+
+struct Position {
+    std::shared_ptr<Asset> asset;
+    double quantity;
+};
+
+class Portfolio {
+private:
+    std::vector<Position> positions;
+
+public:
+    void addPosition(std::shared_ptr<Asset> asset, double quantity);
+    
+    double getInitialValue() const; 
+    size_t getNumAssets() const;
+
+    double simulatePathPnL(double totalTime, int numSteps, const std::vector<std::vector<double>>& Z_matrix) const;
+};
+
+
+================================================================================
+ ARCHIVO: ./Random\CorrelatedGenerator.cpp
+================================================================================
+
+#include "CorrelatedGenerator.h"
+#include <stdexcept>
+
+CorrelatedGenerator::CorrelatedGenerator(RandomGenerator* rng, const Eigen::MatrixXd& correlationMatrix) 
+    : rng(rng), numAssets(correlationMatrix.rows()) {
+    
+    if (correlationMatrix.rows() != correlationMatrix.cols()) {
+        throw std::invalid_argument("La matriz de correlacion debe ser cuadrada.");
+    }
+
+    Eigen::LLT<Eigen::MatrixXd> lltOfCorr(correlationMatrix);
+    if (lltOfCorr.info() == Eigen::NumericalIssue) {
+        throw std::runtime_error("La matriz de correlacion no es definida positiva.");
+    }
+    
+    L = lltOfCorr.matrixL();
+}
+
+std::vector<double> CorrelatedGenerator::getCorrelatedNormals() {
+    Eigen::VectorXd independentZ(numAssets);
+    for (int i = 0; i < numAssets; ++i) {
+        independentZ(i) = rng->getStandardNormal();
+    }
+
+    Eigen::VectorXd correlatedZ = L * independentZ;
+
+    std::vector<double> result(numAssets);
+    for (int i = 0; i < numAssets; ++i) {
+        result[i] = correlatedZ(i);
+    }
+    
+    return result;
+}
+
+
+================================================================================
+ ARCHIVO: ./Random\CorrelatedGenerator.h
+================================================================================
+
+#ifndef CORRELATED_GENERATOR_H
+#define CORRELATED_GENERATOR_H
+
+#include <vector>
+#include <Eigen/Dense>
+#include "RandomGenerator.h"
+
+class CorrelatedGenerator {
+private:
+    RandomGenerator* rng; // Puntero a nuestro generador base
+    Eigen::MatrixXd L;    // Matriz triangular inferior de Cholesky
+    int numAssets;
+
+public:
+    // Constructor: recibe el generador y la matriz de correlación
+    CorrelatedGenerator(RandomGenerator* rng, const Eigen::MatrixXd& correlationMatrix);
+    
+    // Genera y devuelve un vector de Zs correlacionadas
+    std::vector<double> getCorrelatedNormals();
+};
+
+#endif // CORRELATED_GENERATOR_H
+
+
+================================================================================
+ ARCHIVO: ./Random\RandomGenerator.cpp
+================================================================================
+
+#include "RandomGenerator.h"
+#include "Maths/MathUtils.h"
+
+MersenneTwisterGen::MersenneTwisterGen(unsigned int seed) 
+    : generator(seed), distribution(0.0, 1.0) {}
+
+double MersenneTwisterGen::getStandardNormal() {
+    return distribution(generator);
+}
+
+void MersenneTwisterGen::generateStandardNormals(std::vector<double>& vec) {
+    for (double& v : vec) {
+        v = getStandardNormal();
+    }
+}
+
+AntitheticGenerator::AntitheticGenerator(RandomGenerator* innerGen) 
+    : innerGenerator(innerGen), returnNegatedNext(false), lastGeneratedNormal(0.0) {}
+
+double AntitheticGenerator::getStandardNormal() {
+    if (returnNegatedNext) {
+        returnNegatedNext = false;
+        return -lastGeneratedNormal; 
+    } else {
+        lastGeneratedNormal = innerGenerator->getStandardNormal();
+        returnNegatedNext = true;
+        return lastGeneratedNormal;
+    }
+}
+
+void AntitheticGenerator::generateStandardNormals(std::vector<double>& vec) {
+    for (double& v : vec) {
+        v = getStandardNormal();
+    }
+}
+
+BoostSobolGenerator::BoostSobolGenerator(std::size_t dimension) 
+    : sobolEngine(dimension) {}
+
+double BoostSobolGenerator::getStandardNormal() {
+    double u = uniformDist(sobolEngine);
+    if (u <= 0.0) u = 1e-9;
+    if (u >= 1.0) u = 1.0 - 1e-9;
+    return MathUtils::inverseNormalCDF(u);
+}
+
+void BoostSobolGenerator::generateStandardNormals(std::vector<double>& vec) {
+    for (double& v : vec) {
+        v = getStandardNormal();
+    }
+}
+
+void BoostSobolGenerator::skip(unsigned long long steps) {
+    sobolEngine.discard(steps);
+}
+
+
+================================================================================
+ ARCHIVO: ./Random\RandomGenerator.h
+================================================================================
+
+#ifndef RANDOM_GENERATOR_H
+#define RANDOM_GENERATOR_H
+
+#include <vector>
+#include <random>
+#include <boost/random/sobol.hpp>
+#include <boost/random/uniform_01.hpp>
+
+class RandomGenerator {
+public:
+    virtual ~RandomGenerator() = default;
+    virtual double getStandardNormal() = 0;
+    virtual void generateStandardNormals(std::vector<double>& vec) = 0;
+};
+
+class MersenneTwisterGen : public RandomGenerator {
+private:
+    std::mt19937 generator;
+    std::normal_distribution<double> distribution;
+
+public:
+    MersenneTwisterGen(unsigned int seed);
+    double getStandardNormal() override;
+    void generateStandardNormals(std::vector<double>& vec) override;
+};
+
+class AntitheticGenerator : public RandomGenerator {
+private:
+    RandomGenerator* innerGenerator;
+    bool returnNegatedNext;
+    double lastGeneratedNormal;
+
+public:
+    AntitheticGenerator(RandomGenerator* innerGen);
+    double getStandardNormal() override;
+    void generateStandardNormals(std::vector<double>& vec) override;
+};
+
+class BoostSobolGenerator : public RandomGenerator {
+private:
+    boost::random::sobol sobolEngine;
+    boost::random::uniform_01<double> uniformDist;
+
+public:
+    BoostSobolGenerator(std::size_t dimension);
+    double getStandardNormal() override;
+    void generateStandardNormals(std::vector<double>& vec) override;
+    void skip(unsigned long long steps);
+};
+
+#endif // RANDOM_GENERATOR_H
+

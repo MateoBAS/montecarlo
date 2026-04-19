@@ -6,23 +6,31 @@
 #include "Portfolio/Portfolio.h"
 #include "Metrics/RiskCalculator.h"
 
+// 1. Añadimos un enum para seleccionar el generador desde la configuración
+enum class RNGType {
+    MersenneTwister,
+    Antithetic,
+    Sobol
+};
+
 struct SimConfig {
     int totalSims;
     double totalTime;
     int numSteps;
     Eigen::MatrixXd corrMatrix;
     int numCores;
+    RNGType rngType = RNGType::MersenneTwister;
 };
 
 class MonteCarloEngine {
 public:
-    // Este método centraliza toda la lógica que tenías en el main
     static RiskCalculator run(const Portfolio& portfolio, const SimConfig& config);
 
 private:
-    // Función auxiliar para los lotes paralelos
+    // Cambiamos Eigen::MatrixXd& L por corrMatrix para poder usar tu CorrelatedGenerator
     static std::vector<double> runBatch(int sims, double time, int steps, 
-                                        const Portfolio& port, const Eigen::MatrixXd& L, int seed);
+                                        const Portfolio& port, const Eigen::MatrixXd& corrMatrix, 
+                                        int seed, RNGType rngType);
 };
 
 #endif
