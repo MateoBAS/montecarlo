@@ -38,11 +38,17 @@ BoostSobolGenerator::BoostSobolGenerator(std::size_t dimension)
     : sobolEngine(dimension) {}
 
 double BoostSobolGenerator::getStandardNormal() {
-    double u = uniformDist(sobolEngine);
+
+    double val = static_cast<double>(sobolEngine());
+    double max_val = static_cast<double>((sobolEngine.max)());
+    double u = val / max_val;
+    
     if (u <= 0.0) u = 1e-9;
     if (u >= 1.0) u = 1.0 - 1e-9;
+    
     return MathUtils::inverseNormalCDF(u);
 }
+
 
 void BoostSobolGenerator::generateStandardNormals(std::vector<double>& vec) {
     for (double& v : vec) {

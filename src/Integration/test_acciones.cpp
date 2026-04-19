@@ -13,6 +13,7 @@
 #include "Portfolio/Portfolio.h"
 #include "Metrics/RiskCalculator.h"
 #include "Asset/GBMAsset.h"
+#include "Asset/EuropeanOption.h"
 
 BOOST_AUTO_TEST_SUITE(Escenario_Rendimiento_Estadistico)
 
@@ -96,6 +97,90 @@ BOOST_AUTO_TEST_CASE(Amdahl_Con_Incertidumbre) {
     }
     
     archivo.close();
+    BOOST_CHECK(true); 
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+// ========================================================================
+// NUEVA SUITE: ESTUDIO DE CONVERGENCIA DE GENERADORES (VRT)
+// ========================================================================
+
+BOOST_AUTO_TEST_SUITE(Escenario_Convergencia_RNG)
+
+BOOST_AUTO_TEST_CASE(Comparativa_Generadores) {
+    std::cout << "\n--> Iniciando Benchmark de Convergencia de RNGs...\n";
+    
+    // 1. Configuración de la cartera
+    Portfolio cartera;
+
+    auto stockA = std::make_shared<GBMAsset>("TechA", 150.0, 0.05, 0.25);
+    auto stockB = std::make_shared<GBMAsset>("TechB", 200.0, 0.08, 0.30);
+    
+    cartera.addPosition(stockA, 100.0);
+    cartera.addPosition(stockB, 50.0);
+
+    // 2. Configuración base del motor
+    SimConfig config;
+    config.totalTime = 1.0; // 1 año de proyección
+    config.numSteps = 252;  // Simulación diaria
+    config.numCores = std::thread::hardware_concurrency();
+    
+    Eigen::MatrixXd corr(2, 2);
+    corr << 1.0, 0.4, 
+            0.4, 1.0;
+    config.corrMatrix = corr;
+
+    // 3. Preparación del archivo de salida
+    std::string rutaCSV = "../graphics/convergencia_rng.csv";
+    std::ofstream archivo(rutaCSV);
+    
+    if (!archivo.is_open()) {
+        BOOST_FAIL("Fallo al crear el archivo CSV para la convergencia en ../graphics/");
+    }
+    
+    // Cabecera del CSV
+    archivo << "Simulaciones,Mersenne_VaR95,Antithetic_VaR95,Sobol_VaR95\n";
+
+    // 4. Parámetros del bucle de convergencia
+    const int SIMS_INICIALES = 128;
+    const int SIMS_MAXIMAS = std::pow(2, 20);
+    const int PASO_SIMS = 2;
+
+    std::cout << "Evaluando desde " << SIMS_INICIALES << " hasta " << SIMS_MAXIMAS << " simulaciones...\n";
+
+    // 5. Ejecución iterativa aumentando N
+    for (int sims = SIMS_INICIALES; sims <= SIMS_MAXIMAS; sims *= PASO_SIMS) {
+        config.totalSims = sims;
+
+        // --- A) Mersenne Twister (Pseudo-Random estándar) ---
+        config.rngType = RNGType::MersenneTwister;
+        RiskCalculator calcMT = MonteCarloEngine::run(cartera, config);
+        double varMT = calcMT.calculateVaR(0.95);
+
+        // --- B) Variables Antitéticas (Reducción de Varianza) ---
+        config.rngType = RNGType::Antithetic;
+        RiskCalculator calcAnti = MonteCarloEngine::run(cartera, config);
+        double varAnti = calcAnti.calculateVaR(0.95);
+
+        // --- C) Secuencia de Sobol (Quasi-Random) ---
+        config.rngType = RNGType::Sobol;
+        RiskCalculator calcSobol = MonteCarloEngine::run(cartera, config);
+        double varSobol = calcSobol.calculateVaR(0.95);
+
+        // Guardar métricas en el CSV
+        archivo << sims << "," << varMT << "," << varAnti << "," << varSobol << "\n";
+        
+        // Feedback visual en consola
+        std::cout << "N = " << sims 
+                  << " | MT: " << varMT 
+                  << " | Anti: " << varAnti 
+                  << " | Sobol: " << varSobol << "\n";
+    }
+    
+    archivo.close();
+    std::cout << "--> Benchmark de convergencia finalizado. Datos guardados en CSV.\n";
+    
     BOOST_CHECK(true); 
 }
 

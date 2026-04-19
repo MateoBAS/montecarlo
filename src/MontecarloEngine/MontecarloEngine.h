@@ -6,7 +6,6 @@
 #include "Portfolio/Portfolio.h"
 #include "Metrics/RiskCalculator.h"
 
-// 1. Añadimos un enum para seleccionar el generador desde la configuración
 enum class RNGType {
     MersenneTwister,
     Antithetic,

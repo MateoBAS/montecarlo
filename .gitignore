@@ -15,3 +15,9 @@ CMakeFiles/
 # ==========================================
 .DS_Store
 Thumbs.db
+
+# ==========================================
+# Ignorar archivos de log
+# ==========================================
+src/code_extractor.py
+src/codigo_proyecto.txt
