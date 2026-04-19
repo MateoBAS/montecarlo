@@ -1,0 +1,1 @@
+boost_test_project(NAME test_montecarloengine DEPS MontecarloEngine Asset Portfolio Metrics)

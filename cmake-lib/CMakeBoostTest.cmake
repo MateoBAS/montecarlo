@@ -21,7 +21,7 @@ function (boost_test_project)
         message(FATAL_ERROR "You must provide a name")
     endif(NOT PARSED_ARGS_NAME)
 
-	set(BOOST_ROOT "C:/boost_1_90_0")
+	set(BOOST_ROOT "C:/boost_1_81_0")
 
 	if(Boost_FOUND)
   		include_directories(${Boost_INCLUDE_DIRS})

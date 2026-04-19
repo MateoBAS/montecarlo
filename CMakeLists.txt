@@ -45,6 +45,8 @@ set(CXX_FILE_EXTENSIONS "*.h"  "*.cpp")
 include_directories(${INCLUDE_HOME} ${EIGEN_ROOT})
 add_definitions(-std=gnu++14)
 
+add_compile_options(-O3 -march=native)
+
 # 5. Add subdirs
 add_subdirectory(src)
 
@@ -57,4 +59,4 @@ add_executable(integration_tests
 
 target_include_directories(integration_tests PRIVATE ${BOOST_ROOT})
 
-target_link_libraries(integration_tests Asset Portfolio Maths Metrics Random Boost::unit_test_framework)
+target_link_libraries(integration_tests Asset Portfolio Maths Metrics Random MontecarloEngine Boost::unit_test_framework)
