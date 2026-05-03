@@ -17,6 +17,7 @@ set(Boost_ARCHITECTURE "-x64")                    # Arquitectura de MinGW
 set(Boost_USE_STATIC_LIBS ON)                     # Buscar archivos .a
 
 set(EIGEN_ROOT "C:/eigen-5.0.0")
+set(QPP_ROOT "C:/qpp")
 
 
 # Print some stuff
@@ -24,6 +25,7 @@ message("--> CMake extra functions: " ${CMAKE_MODULE_PATH})
 message("--> Binaries: " ${CMAKE_BINARY_DIR})
 message("--> Include base path: " ${INCLUDE_HOME})
 message("--> Eigen path: " ${EIGEN_ROOT})
+message("--> Eigen path: " ${QPP_ROOT})
 
 
 # 2. Load in-house cmake modules
@@ -42,8 +44,8 @@ set(PROJECT_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/include)
 set(CXX_FILE_EXTENSIONS "*.h"  "*.cpp")
 
 # 4. Set Compilation environment
-include_directories(${INCLUDE_HOME} ${EIGEN_ROOT})
-add_definitions(-std=gnu++14)
+include_directories(${INCLUDE_HOME} ${EIGEN_ROOT} ${QPP_ROOT}/include ${QPP_ROOT}/qasmtools/include)
+add_definitions(-std=gnu++17)
 
 add_compile_options(-O3 -march=native)
 

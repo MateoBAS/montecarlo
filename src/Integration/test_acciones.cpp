@@ -15,6 +15,8 @@
 #include "Asset/GBMAsset.h"
 #include "Asset/EuropeanOption.h"
 
+#include <qpp/qpp.hpp>
+
 BOOST_AUTO_TEST_SUITE(Escenario_Rendimiento_Estadistico)
 
 BOOST_AUTO_TEST_CASE(Amdahl_Con_Incertidumbre) {
@@ -181,6 +183,26 @@ BOOST_AUTO_TEST_CASE(Comparativa_Generadores) {
     archivo.close();
     std::cout << "--> Benchmark de convergencia finalizado. Datos guardados en CSV.\n";
     
+    BOOST_CHECK(true); 
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+BOOST_AUTO_TEST_SUITE(Escenario_cuantico)
+
+BOOST_AUTO_TEST_CASE(Comparativa_Generadores) {
+    using namespace qpp;
+
+    // 1. Inicializamos un estado cuántico de 1 qubit en |0>
+    ket psi = 0_ket;
+
+    // 2. Aplicamos la compuerta Hadamard (crea superposición)
+    psi = gt.H * psi;
+
+    // 3. Mostramos el resultado
+    std::cout << "Estado tras aplicar Hadamard:\n";
+    std::cout << disp(psi) << std::endl;
+
     BOOST_CHECK(true); 
 }
 
