@@ -8,6 +8,10 @@ protected:
     std::string name;
     double initialPrice;
 
+    std::vector<double> simulateGbmPath(double startPrice, double drift, double volatility,
+                                        double totalTime, int numSteps,
+                                        const std::vector<double>& Zs) const;
+
 public:
     Asset(std::string name, double initialPrice) 
         : name(std::move(name)), initialPrice(initialPrice) {}
