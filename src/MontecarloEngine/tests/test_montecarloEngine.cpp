@@ -11,6 +11,7 @@
 #include "Portfolio/Portfolio.h"
 #include "Metrics/RiskCalculator.h"
 #include "Asset/Asset.h"
+#include "InterestRate/InterestRateModel.h"
 
 class DummyAsset : public Asset {
 public:
@@ -21,11 +22,16 @@ public:
     // La clase base Asset ya se encarga de devolvernos el precio inicial correctamente.
 
     // Sobrescribimos la función que SÍ es virtual pura (= 0), respetando su 'const' al final
-    std::vector<double> generatePath(double totalTime, int numSteps, const std::vector<double>& Zs) const override {
+    std::vector<double> generatePath(double totalTime, int numSteps,
+                                     const std::vector<double>& Zs,
+                                     const std::vector<double>& ratePath) const override {
         std::vector<double> path;
         
         // Podemos usar getInitialPrice() porque lo heredamos de la clase padre
         double currentPrice = getInitialPrice(); 
+        (void)totalTime;
+        (void)numSteps;
+        (void)ratePath;
         
         for(double z : Zs) {
             currentPrice += z; 
@@ -109,6 +115,47 @@ BOOST_FIXTURE_TEST_CASE(ThrowsOnInvalidConfidenceLevels, SimulacionFixture) {
     // Probabilidades fuera del rango en ES
     BOOST_CHECK_THROW(report.calculateES(0.0), std::invalid_argument);
     BOOST_CHECK_THROW(report.calculateES(1.0), std::invalid_argument);
+}
+
+// ==========================================
+// TEST: Corr Matrix Size With Rate Factor
+// ==========================================
+class DummyRateModel : public InterestRateModel {
+public:
+    std::vector<double> simulateShortRatePath(double totalTime, int numSteps,
+                                              const std::vector<double>& Zs) const override {
+        (void)totalTime;
+        (void)Zs;
+        return std::vector<double>(static_cast<size_t>(numSteps) + 1, 0.01);
+    }
+
+    double discountFactorFromPath(const std::vector<double>& ratePath, double dt) const override {
+        if (ratePath.empty()) {
+            return 1.0;
+        }
+        return std::exp(-0.01 * dt * static_cast<double>(ratePath.size() - 1));
+    }
+
+    double zeroCouponBondPrice(double t, double T, double shortRateAtT) const override {
+        (void)shortRateAtT;
+        return std::exp(-0.01 * (T - t));
+    }
+
+    double initialShortRate() const override {
+        return 0.01;
+    }
+};
+
+BOOST_FIXTURE_TEST_CASE(ThrowsOnInvalidCorrMatrixWithRateModel, SimulacionFixture) {
+    SimConfig badConfig = config;
+    badConfig.rateModel = std::make_shared<DummyRateModel>();
+
+    Eigen::MatrixXd corr(2, 2);
+    corr << 1.0, 0.5,
+            0.5, 1.0;
+    badConfig.corrMatrix = corr; // Debe ser 3x3 con el factor de tipos
+
+    BOOST_CHECK_THROW(MonteCarloEngine::run(cartera, badConfig), std::invalid_argument);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

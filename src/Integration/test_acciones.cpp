@@ -14,6 +14,9 @@
 #include "Metrics/RiskCalculator.h"
 #include "Asset/GBMAsset.h"
 #include "Asset/EuropeanOption.h"
+#include "Asset/CouponBond.h"
+#include "InterestRate/YieldCurve.h"
+#include "InterestRate/HullWhiteModel.h"
 
 BOOST_AUTO_TEST_SUITE(Escenario_Rendimiento_Estadistico)
 
@@ -182,6 +185,54 @@ BOOST_AUTO_TEST_CASE(Comparativa_Generadores) {
     std::cout << "--> Benchmark de convergencia finalizado. Datos guardados en CSV.\n";
     
     BOOST_CHECK(true); 
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+// ========================================================================
+// NUEVA SUITE: EJEMPLO COMPLETO CON HULL-WHITE
+// ========================================================================
+
+BOOST_AUTO_TEST_SUITE(Escenario_HullWhite_Completo)
+
+BOOST_AUTO_TEST_CASE(Ejemplo_Con_Tipos_y_Equity) {
+    std::cout << "\n--> Iniciando ejemplo completo con Hull-White...\n";
+
+    // 1) Curva inicial (zero rates) y modelo HW
+    YieldCurve curve({0.5, 1.0, 2.0, 5.0, 10.0}, {0.02, 0.022, 0.025, 0.03, 0.032});
+    auto hw = std::make_shared<HullWhiteModel>(0.05, 0.01, curve);
+
+    // 2) Cartera con equity + bono (bono usa el modelo de tipos)
+    Portfolio cartera;
+    auto stock = std::make_shared<GBMAsset>("EquityA", 100.0, 0.02, 0.20);
+    auto bond = std::make_shared<CouponBond>("Bond_HW", 1000.0, 0.03, 3.0, hw);
+    cartera.addPosition(stock, 50.0);
+    cartera.addPosition(bond, 5.0);
+
+    // 3) Configuración del motor
+    SimConfig config;
+    config.totalSims = 2000;
+    config.totalTime = 1.0;
+    config.numSteps = 50;
+    config.numCores = std::thread::hardware_concurrency();
+    config.rateModel = hw;
+
+    // 4) Matriz de correlación: [Equity, Bond, Rate]
+    Eigen::MatrixXd corr(3, 3);
+    corr << 1.0, 0.2, 0.3,
+            0.2, 1.0, 0.4,
+            0.3, 0.4, 1.0;
+    config.corrMatrix = corr;
+
+    BOOST_CHECK_NO_THROW({
+        RiskCalculator report = MonteCarloEngine::run(cartera, config);
+        double var99 = report.calculateVaR(0.99);
+        double es99 = report.calculateES(0.99);
+        std::cout << "VaR 99% (HW): " << var99 << "\n";
+        std::cout << "ES  99% (HW): " << es99 << "\n";
+        BOOST_CHECK(std::isfinite(var99));
+        BOOST_CHECK(std::isfinite(es99));
+    });
 }
 
 BOOST_AUTO_TEST_SUITE_END()

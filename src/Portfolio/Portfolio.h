@@ -3,6 +3,8 @@
 #include <memory>
 #include "../Asset/Asset.h"
 
+class InterestRateModel;
+
 struct Position {
     std::shared_ptr<Asset> asset;
     double quantity;
@@ -18,5 +20,8 @@ public:
     double getInitialValue() const; 
     size_t getNumAssets() const;
 
-    double simulatePathPnL(double totalTime, int numSteps, const std::vector<std::vector<double>>& Z_matrix) const;
+    double simulatePathPnL(double totalTime, int numSteps,
+                           const std::vector<std::vector<double>>& Z_matrix,
+                           const std::vector<double>& ratePath,
+                           const InterestRateModel* rateModel) const;
 };

@@ -3,17 +3,19 @@
 BarrierOption::BarrierOption(std::string name, double optionPremium, double underlyingInitialPrice, 
                              double strike, double barrier, double drift, double volatility)
     : Asset(std::move(name), optionPremium), underlyingInitialPrice(underlyingInitialPrice), 
-      strike(strike), barrier(barrier), drift(drift), volatility(volatility) {}
+    strike(strike), barrier(barrier), driftSpread(drift), volatility(volatility) {}
 
-std::vector<double> BarrierOption::generatePath(double totalTime, int numSteps, const std::vector<double>& Zs) const {
+std::vector<double> BarrierOption::generatePath(double totalTime, int numSteps,
+                                const std::vector<double>& Zs,
+                                const std::vector<double>& ratePath) const {
     std::vector<double> path;
     path.reserve(numSteps + 1);
 
     // El primer valor del path es el coste (prima)
     path.push_back(getInitialPrice());
 
-    std::vector<double> underlyingPath =
-        simulateGbmPath(underlyingInitialPrice, drift, volatility, totalTime, numSteps, Zs);
+    std::vector<double> underlyingPath = simulateGbmPathWithRate(
+        underlyingInitialPrice, driftSpread, volatility, totalTime, numSteps, Zs, ratePath);
 
     bool knockedOut = false;
 

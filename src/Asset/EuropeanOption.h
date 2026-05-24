@@ -8,7 +8,7 @@ class EuropeanOption : public Asset {
 private:
     double underlyingInitialPrice;
     double strike;
-    double drift;
+    double driftSpread;
     double volatility;
     OptionType type;
 
@@ -16,5 +16,7 @@ public:
     EuropeanOption(std::string name, double optionPremium, double underlyingInitialPrice, 
                    double strike, double drift, double volatility, OptionType type);
 
-    std::vector<double> generatePath(double totalTime, int numSteps, const std::vector<double>& Zs) const override;
+    std::vector<double> generatePath(double totalTime, int numSteps,
+                                     const std::vector<double>& Zs,
+                                     const std::vector<double>& ratePath) const override;
 };

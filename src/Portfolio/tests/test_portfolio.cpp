@@ -10,6 +10,7 @@
 #include "Portfolio/Portfolio.h"
 #include "Asset/Asset.h"
 #include "Asset/GBMAsset.h" 
+#include "InterestRate/InterestRateModel.h"
 
 // ==========================================
 // MOCK ASSET PARA AISLAR LOS TESTS UNITARIOS
@@ -24,8 +25,13 @@ public:
         : Asset(std::move(name), initPrice), finalSimulatedPrice(finalPrice) {}
 
     // Sobrescribimos el método virtual puro
-    std::vector<double> generatePath(double totalTime, int numSteps, const std::vector<double>& Zs) const override {
+    std::vector<double> generatePath(double totalTime, int numSteps,
+                                     const std::vector<double>& Zs,
+                                     const std::vector<double>& ratePath) const override {
         // Creamos un path ficticio. Solo nos importa que el último elemento sea finalSimulatedPrice
+        (void)totalTime;
+        (void)Zs;
+        (void)ratePath;
         std::vector<double> path(numSteps + 1, getInitialPrice()); 
         path.back() = finalSimulatedPrice; 
         return path;
@@ -72,7 +78,8 @@ BOOST_AUTO_TEST_CASE(SimulatePathPnL_ThrowsOnZMatrixMismatch) {
         {-0.1, -0.2}
     };
 
-    BOOST_CHECK_THROW(port.simulatePathPnL(1.0, 2, badZMatrix), std::invalid_argument);
+    std::vector<double> ratePath(3, 0.0);
+    BOOST_CHECK_THROW(port.simulatePathPnL(1.0, 2, badZMatrix, ratePath, nullptr), std::invalid_argument);
 }
 
 BOOST_AUTO_TEST_CASE(SimulatePathPnL_CalculatesCorrectly) {
@@ -91,10 +98,11 @@ BOOST_AUTO_TEST_CASE(SimulatePathPnL_CalculatesCorrectly) {
         {0.0, 0.0},
         {0.0, 0.0}
     };
+    std::vector<double> ratePath(3, 0.0);
 
     // PnL Esperado = 100 - 50 = +50.0
     double expectedPnL = 50.0;
-    double actualPnL = port.simulatePathPnL(1.0, 2, zMatrix);
+    double actualPnL = port.simulatePathPnL(1.0, 2, zMatrix, ratePath, nullptr);
 
     BOOST_CHECK_CLOSE(actualPnL, expectedPnL, 1e-9);
 }
@@ -116,6 +124,7 @@ BOOST_AUTO_TEST_CASE(Integration_PortfolioWithGBMAsset) {
     std::vector<std::vector<double>> zMatrix = {
         {0.0, 0.0, 0.0, 0.0, 0.0}
     };
+    std::vector<double> ratePath(numSteps + 1, 0.0);
 
     double initialValue = port.getInitialValue(); // 100 * 10 = 1000
     
@@ -124,9 +133,60 @@ BOOST_AUTO_TEST_CASE(Integration_PortfolioWithGBMAsset) {
     double expectedFutureValue = expectedFinalPrice * 10.0;
     double expectedPnL = expectedFutureValue - initialValue;
 
-    double actualPnL = port.simulatePathPnL(totalTime, numSteps, zMatrix);
+    double actualPnL = port.simulatePathPnL(totalTime, numSteps, zMatrix, ratePath, nullptr);
 
     BOOST_CHECK_CLOSE(actualPnL, expectedPnL, 1e-7);
+}
+
+// ==========================================
+// TEST: PnL Discounted With Rate Model
+// ==========================================
+class FlatRateModel : public InterestRateModel {
+public:
+    explicit FlatRateModel(double r) : rate(r) {}
+
+    std::vector<double> simulateShortRatePath(double totalTime, int numSteps,
+                                              const std::vector<double>& Zs) const override {
+        (void)totalTime;
+        (void)Zs;
+        return std::vector<double>(static_cast<size_t>(numSteps) + 1, rate);
+    }
+
+    double discountFactorFromPath(const std::vector<double>& ratePath, double dt) const override {
+        if (ratePath.empty()) {
+            return 1.0;
+        }
+        return std::exp(-rate * dt * static_cast<double>(ratePath.size() - 1));
+    }
+
+    double zeroCouponBondPrice(double t, double T, double shortRateAtT) const override {
+        (void)shortRateAtT;
+        return std::exp(-rate * (T - t));
+    }
+
+    double initialShortRate() const override {
+        return rate;
+    }
+
+private:
+    double rate;
+};
+
+BOOST_AUTO_TEST_CASE(DiscountsFutureValue) {
+    Portfolio port;
+    auto assetA = std::make_shared<MockAsset>("MockA", 100.0, 110.0);
+    port.addPosition(assetA, 1.0);
+
+    std::vector<std::vector<double>> zMatrix = {{0.0}};
+    std::vector<double> ratePath = {0.05, 0.05};
+    FlatRateModel model(0.05);
+
+    double pnl = port.simulatePathPnL(1.0, 1, zMatrix, ratePath, &model);
+
+    double discountedFuture = 110.0 * std::exp(-0.05 * 1.0);
+    double expectedPnL = discountedFuture - 100.0;
+
+    BOOST_CHECK_CLOSE(pnl, expectedPnL, 1e-9);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

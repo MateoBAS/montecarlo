@@ -1,4 +1,5 @@
 add_subdirectory(Asset)
+add_subdirectory(InterestRate)
 add_subdirectory(Maths)
 add_subdirectory(Metrics)
 add_subdirectory(Portfolio)

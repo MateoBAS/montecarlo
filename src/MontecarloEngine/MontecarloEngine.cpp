@@ -1,9 +1,11 @@
 #include "MonteCarloEngine.h"
+#include "InterestRate/InterestRateModel.h"
 #include "Random/RandomGenerator.h"
 #include "Random/BrownianBridge.h"
 #include <thread>
 #include <future>
 #include <memory>
+#include <stdexcept>
 
 RiskCalculator MonteCarloEngine::run(const Portfolio& portfolio, const SimConfig& config) {
     int numCores = config.numCores;
@@ -19,7 +21,8 @@ RiskCalculator MonteCarloEngine::run(const Portfolio& portfolio, const SimConfig
     for (int i = 0; i < numCores; ++i) {
         futures.push_back(std::async(std::launch::async, MonteCarloEngine::runBatch, 
                                      simsPerCore, config.totalTime, config.numSteps, 
-                                     std::ref(portfolio), std::ref(config.corrMatrix), i, config.rngType));
+                                     std::ref(portfolio), std::ref(config.corrMatrix),
+                                     config.rateModel.get(), i, config.rngType));
     }
 
     std::vector<double> allPnLs;
@@ -32,11 +35,18 @@ RiskCalculator MonteCarloEngine::run(const Portfolio& portfolio, const SimConfig
     return RiskCalculator(allPnLs);
 }
 
-std::vector<double> MonteCarloEngine::runBatch(int sims, double time, int steps, 
-                                               const Portfolio& port, const Eigen::MatrixXd& corrMatrix, 
-                                               int seed, RNGType rngType) {
+std::vector<double> MonteCarloEngine::runBatch(int sims, double time, int steps,
+                                               const Portfolio& port, const Eigen::MatrixXd& corrMatrix,
+                                               const InterestRateModel* rateModel, int seed, RNGType rngType) {
     size_t numAssets = port.getNumAssets(); 
-    int pathDimension = numAssets * steps; 
+    bool useRates = (rateModel != nullptr);
+    size_t numFactors = numAssets + (useRates ? 1 : 0);
+    int pathDimension = static_cast<int>(numFactors) * steps; 
+
+    if (corrMatrix.rows() != static_cast<int>(numFactors) ||
+        corrMatrix.cols() != static_cast<int>(numFactors)) {
+        throw std::invalid_argument("La matriz de correlacion no coincide con el numero de factores.");
+    }
 
     std::vector<double> results;
     results.reserve(sims);
@@ -67,7 +77,7 @@ std::vector<double> MonteCarloEngine::runBatch(int sims, double time, int steps,
 
     for (int i = 0; i < iterations; ++i) {
         
-        Eigen::MatrixXd Z_indep(numAssets, steps);
+        Eigen::MatrixXd Z_indep(static_cast<int>(numFactors), steps);
         
         // Creamos el vector con el tamaño total y tu RNG lo rellena por referencia
         std::vector<double> z_vec(pathDimension);
@@ -78,7 +88,7 @@ std::vector<double> MonteCarloEngine::runBatch(int sims, double time, int steps,
             std::vector<double> sobol_asset(steps);
             std::vector<double> impliedZ_asset(steps);
             
-            for (size_t a = 0; a < numAssets; ++a) {
+            for (size_t a = 0; a < numFactors; ++a) {
                 // Extraemos las dimensiones saltando de numAssets en numAssets
                 // Así la dimensión 1, 2... de Sobol (las mejores) deciden el fin del año de cada activo
                 for (int k = 0; k < steps; ++k) {
@@ -96,7 +106,7 @@ std::vector<double> MonteCarloEngine::runBatch(int sims, double time, int steps,
             // Lógica secuencial estándar para Mersenne Twister y Antitéticas
             int idx = 0;
             for (int s = 0; s < steps; ++s) {
-                for (size_t a = 0; a < numAssets; ++a) {
+                for (size_t a = 0; a < numFactors; ++a) {
                     Z_indep(a, s) = z_vec[idx++];
                 }
             }
@@ -112,7 +122,18 @@ std::vector<double> MonteCarloEngine::runBatch(int sims, double time, int steps,
                 Z_path[a][s] = Z_corr(a, s);
             }
         }
-        results.push_back(port.simulatePathPnL(time, steps, Z_path));
+
+        std::vector<double> ratePath;
+        if (useRates) {
+            std::vector<double> Z_rate(steps);
+            size_t rateIndex = numFactors - 1;
+            for (int s = 0; s < steps; ++s) {
+                Z_rate[s] = Z_corr(static_cast<int>(rateIndex), s);
+            }
+            ratePath = rateModel->simulateShortRatePath(time, steps, Z_rate);
+        }
+
+        results.push_back(port.simulatePathPnL(time, steps, Z_path, ratePath, rateModel));
 
         // D) Lógica Antitética: Reflejamos la matriz Z_indep perfecta y volvemos a simular
         if (rngType == RNGType::Antithetic) {
@@ -124,7 +145,17 @@ std::vector<double> MonteCarloEngine::runBatch(int sims, double time, int steps,
                     Z_path_anti[a][s] = Z_corr_anti(a, s);
                 }
             }
-            results.push_back(port.simulatePathPnL(time, steps, Z_path_anti));
+            std::vector<double> ratePathAnti;
+            if (useRates) {
+                std::vector<double> Z_rate(steps);
+                size_t rateIndex = numFactors - 1;
+                for (int s = 0; s < steps; ++s) {
+                    Z_rate[s] = Z_corr_anti(static_cast<int>(rateIndex), s);
+                }
+                ratePathAnti = rateModel->simulateShortRatePath(time, steps, Z_rate);
+            }
+
+            results.push_back(port.simulatePathPnL(time, steps, Z_path_anti, ratePathAnti, rateModel));
         }
     }
 
