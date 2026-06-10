@@ -1,10 +1,12 @@
 // Descomenta la siguiente línea si compilas este test como un ejecutable independiente
 #define BOOST_TEST_MODULE PortfolioTests 
 #include <boost/test/unit_test.hpp>
-#include <memory>
+/*#include <memory>
 #include <vector>
 #include <stdexcept>
 #include <cmath>
+
+#include <Eigen/Dense>
 
 // Incluye tus cabeceras reales
 #include "Portfolio/Portfolio.h"
@@ -26,11 +28,11 @@ public:
 
     // Sobrescribimos el método virtual puro
     std::vector<double> generatePath(double totalTime, int numSteps,
-                                     const std::vector<double>& Zs,
+                                     const Eigen::Ref<const Eigen::RowVectorXd>& z_shocks,
                                      const std::vector<double>& ratePath) const override {
         // Creamos un path ficticio. Solo nos importa que el último elemento sea finalSimulatedPrice
         (void)totalTime;
-        (void)Zs;
+        (void)z_shocks;
         (void)ratePath;
         std::vector<double> path(numSteps + 1, getInitialPrice()); 
         path.back() = finalSimulatedPrice; 
@@ -189,4 +191,4 @@ BOOST_AUTO_TEST_CASE(DiscountsFutureValue) {
     BOOST_CHECK_CLOSE(pnl, expectedPnL, 1e-9);
 }
 
-BOOST_AUTO_TEST_SUITE_END()
+BOOST_AUTO_TEST_SUITE_END()*/

@@ -16,12 +16,17 @@ RiskCalculator MonteCarloEngine::run(const Portfolio& portfolio, const SimConfig
     }
 
     int simsPerCore = config.totalSims / numCores;
+
+    using MatrixRM = Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
+    Eigen::LLT<Eigen::MatrixXd> llt(config.corrMatrix);
+    MatrixRM L = llt.matrixL(); 
+
     std::vector<std::future<std::vector<double>>> futures;
 
     for (int i = 0; i < numCores; ++i) {
         futures.push_back(std::async(std::launch::async, MonteCarloEngine::runBatch, 
                                      simsPerCore, config.totalTime, config.numSteps, 
-                                     std::ref(portfolio), std::ref(config.corrMatrix),
+                                     std::ref(portfolio), L,
                                      config.rateModel.get(), i, config.rngType));
     }
 
@@ -36,66 +41,79 @@ RiskCalculator MonteCarloEngine::run(const Portfolio& portfolio, const SimConfig
 }
 
 std::vector<double> MonteCarloEngine::runBatch(int sims, double time, int steps,
-                                               const Portfolio& port, const Eigen::MatrixXd& corrMatrix,
+                                               const Portfolio& port, 
+                                               const Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>& L, // Const L en RowMajor
                                                const InterestRateModel* rateModel, int seed, RNGType rngType) {
     size_t numAssets = port.getNumAssets(); 
     bool useRates = (rateModel != nullptr);
     size_t numFactors = numAssets + (useRates ? 1 : 0);
     int pathDimension = static_cast<int>(numFactors) * steps; 
 
-    if (corrMatrix.rows() != static_cast<int>(numFactors) ||
-        corrMatrix.cols() != static_cast<int>(numFactors)) {
-        throw std::invalid_argument("La matriz de correlacion no coincide con el numero de factores.");
-    }
-
     std::vector<double> results;
     results.reserve(sims);
 
-    // 1. Factorización de Cholesky precalculada con Eigen
-    Eigen::LLT<Eigen::MatrixXd> llt(corrMatrix);
-    Eigen::MatrixXd L = llt.matrixL();
-
-    // 2. Inicialización del RNG con la dimensión total (D)
+    // 1. Inicialización del Generador de Números Aleatorios (RNG)
     std::unique_ptr<RandomGenerator> baseRng;
     if (rngType == RNGType::Sobol) {
         auto sobol = std::make_unique<BoostSobolGenerator>(pathDimension);
-        
         unsigned long long elementosASaltar = (unsigned long long)seed * sims * pathDimension;
         sobol->skip(elementosASaltar); 
-        
         baseRng = std::move(sobol);
     } else {
-        // MT funciona con semillas tradicionales independientes
         baseRng = std::make_unique<MersenneTwisterGen>(1234 + seed); 
     }
 
-    // 3. Inicializamos el Puente Browniano ANTES del bucle para no recalcular pesos
     BrownianBridge bridge(steps, time);
-
-    // Si usamos antitéticas, el bucle da la mitad de vueltas (hace 2 simulaciones por iteración)
     int iterations = (rngType == RNGType::Antithetic) ? (sims / 2) : sims;
 
+    // --- HOISTING DE MEMORIA OBLIGATORIA (Estructuras críticas en la pila) ---
+    std::vector<double> z_vec(pathDimension);
+
+    // ¡CRÍTICO!: Forzamos a Eigen a usar Row-Major (Ordenación por Filas)
+    // Así, cada fila (el vector temporal de un activo) es un bloque contiguo en memoria.
+    using MatrixRM = Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
+    
+    MatrixRM Z_indep(static_cast<int>(numFactors), steps);
+    MatrixRM Z_corr(static_cast<int>(numFactors), steps);
+    
+    // Matriz intermedia contigua exclusiva para la Renta Variable (Equity).
+    // Esto soluciona la excepción de strides al mapear filas con Eigen::Ref en Asset.
+    MatrixRM Z_equity(static_cast<int>(numAssets), steps);
+
+    // --- GESTIÓN SELECTIVA DE MEMORIA (0 bytes en el Heap si no se usan) ---
+    std::vector<double> sobol_asset;
+    std::vector<double> impliedZ_asset;
+    std::vector<double> Z_rate;
+    std::vector<double> ratePath;
+    
+    // Variables específicas para el camino antitético
+    std::vector<double> Z_rate_anti;
+    std::vector<double> ratePathAnti;
+
+    // Reservamos memoria únicamente si el camino lógico lo requiere
+    if (rngType == RNGType::Sobol) {
+        sobol_asset.resize(steps);
+        impliedZ_asset.resize(steps);
+    }
+    if (useRates) {
+        Z_rate.resize(steps);
+        if (rngType == RNGType::Antithetic) {
+            Z_rate_anti.resize(steps);
+        }
+    }
+
+    // --- BUCLE PRINCIPAL ULTRA-OPTIMIZADO ---
     for (int i = 0; i < iterations; ++i) {
-        
-        Eigen::MatrixXd Z_indep(static_cast<int>(numFactors), steps);
-        
-        // Creamos el vector con el tamaño total y tu RNG lo rellena por referencia
-        std::vector<double> z_vec(pathDimension);
+        // Generamos los números pseudo o cuasi aleatorios en el vector plano
         baseRng->generateStandardNormals(z_vec); 
         
-        // A) Llenado de matriz con o sin Puente Browniano
+        // Llenamos Z_indep respetando la disposición óptima Row-Major
         if (rngType == RNGType::Sobol) {
-            std::vector<double> sobol_asset(steps);
-            std::vector<double> impliedZ_asset(steps);
-            
             for (size_t a = 0; a < numFactors; ++a) {
-                // Extraemos las dimensiones saltando de numAssets en numAssets
-                // Así la dimensión 1, 2... de Sobol (las mejores) deciden el fin del año de cada activo
                 for (int k = 0; k < steps; ++k) {
-                    sobol_asset[k] = z_vec[a + k * numAssets];
+                    sobol_asset[k] = z_vec[a + k * numFactors]; 
                 }
                 
-                // Pasamos las variables por el puente
                 bridge.transformToStandardNormals(sobol_asset, impliedZ_asset);
                 
                 for (int s = 0; s < steps; ++s) {
@@ -103,7 +121,6 @@ std::vector<double> MonteCarloEngine::runBatch(int sims, double time, int steps,
                 }
             }
         } else {
-            // Lógica secuencial estándar para Mersenne Twister y Antitéticas
             int idx = 0;
             for (int s = 0; s < steps; ++s) {
                 for (size_t a = 0; a < numFactors; ++a) {
@@ -112,50 +129,44 @@ std::vector<double> MonteCarloEngine::runBatch(int sims, double time, int steps,
             }
         }
 
-        // B) Correlacionar TODA la matriz de un solo golpe matricial
-        Eigen::MatrixXd Z_corr = L * Z_indep;
+        // Correlacionamos la matriz entera de un solo golpe algebraico.
+        // Como L y Z_indep son RowMajor, la multiplicación es directa y óptima.
+        Z_corr = L * Z_indep; 
 
-        // C) Convertir y Simular Trayectoria Principal
-        std::vector<std::vector<double>> Z_path(numAssets, std::vector<double>(steps));
-        for (size_t a = 0; a < numAssets; ++a) {
-            for (int s = 0; s < steps; ++s) {
-                Z_path[a][s] = Z_corr(a, s);
-            }
-        }
-
-        std::vector<double> ratePath;
+        // Si hay modelo de tasas, extraemos su trayectoria (última fila de la matriz correlacionada)
         if (useRates) {
-            std::vector<double> Z_rate(steps);
-            size_t rateIndex = numFactors - 1;
+            int rateIndex = static_cast<int>(numFactors) - 1;
             for (int s = 0; s < steps; ++s) {
-                Z_rate[s] = Z_corr(static_cast<int>(rateIndex), s);
+                Z_rate[s] = Z_corr(rateIndex, s);
             }
             ratePath = rateModel->simulateShortRatePath(time, steps, Z_rate);
         }
 
-        results.push_back(port.simulatePathPnL(time, steps, Z_path, ratePath, rateModel));
+        // Extraemos en bloque únicamente las filas de los activos (omitimos la tasa si existe)
+        // a nuestra matriz contigua intermedia, blindando la firma de Asset frente a excepciones.
+        Z_equity = Z_corr.topRows(numAssets);
 
-        // D) Lógica Antitética: Reflejamos la matriz Z_indep perfecta y volvemos a simular
+        // =====================================================================
+        // TRAYECTORIA PRINCIPAL
+        // =====================================================================
+        results.push_back(port.simulatePathPnL(time, steps, Z_equity, ratePath, rateModel));
+
+        // =====================================================================
+        // TRAYECTORIA ANTITÉTICA
+        // =====================================================================
         if (rngType == RNGType::Antithetic) {
-            Eigen::MatrixXd Z_corr_anti = L * (-Z_indep); // -Z
-            
-            std::vector<std::vector<double>> Z_path_anti(numAssets, std::vector<double>(steps));
-            for (size_t a = 0; a < numAssets; ++a) {
-                for (int s = 0; s < steps; ++s) {
-                    Z_path_anti[a][s] = Z_corr_anti(a, s);
-                }
-            }
-            std::vector<double> ratePathAnti;
             if (useRates) {
-                std::vector<double> Z_rate(steps);
-                size_t rateIndex = numFactors - 1;
+                int rateIndex = static_cast<int>(numFactors) - 1;
                 for (int s = 0; s < steps; ++s) {
-                    Z_rate[s] = Z_corr_anti(static_cast<int>(rateIndex), s);
+                    // Invertimos el signo de los shocks de la tasa
+                    Z_rate_anti[s] = -Z_corr(rateIndex, s);
                 }
-                ratePathAnti = rateModel->simulateShortRatePath(time, steps, Z_rate);
+                ratePathAnti = rateModel->simulateShortRatePath(time, steps, Z_rate_anti);
             }
 
-            results.push_back(port.simulatePathPnL(time, steps, Z_path_anti, ratePathAnti, rateModel));
+            // Expresión perezosa de Eigen aplicada sobre la matriz empaquetada:
+            // Invierte los signos al vuelo sin reservas adicionales de memoria RAM.
+            results.push_back(port.simulatePathPnL(time, steps, -Z_equity, ratePathAnti, rateModel));
         }
     }
 

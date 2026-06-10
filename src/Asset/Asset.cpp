@@ -4,7 +4,7 @@
 
 std::vector<double> Asset::simulateGbmPath(double startPrice, double drift, double volatility,
                                            double totalTime, int numSteps,
-                                           const std::vector<double>& Zs) const {
+                                           const Eigen::Ref<const Eigen::RowVectorXd>& z_shocks) const {
     std::vector<double> path;
     path.reserve(numSteps + 1);
 
@@ -18,7 +18,7 @@ std::vector<double> Asset::simulateGbmPath(double startPrice, double drift, doub
     double currentPrice = startPrice;
 
     for (int i = 0; i < numSteps; ++i) {
-        double exponent = drift_term + vol_term * Zs[i];
+        double exponent = drift_term + vol_term * z_shocks[i];
         currentPrice *= std::exp(exponent);
         path.push_back(currentPrice);
     }
@@ -28,7 +28,7 @@ std::vector<double> Asset::simulateGbmPath(double startPrice, double drift, doub
 
 std::vector<double> Asset::simulateGbmPathWithRate(double startPrice, double driftSpread, double volatility,
                                                    double totalTime, int numSteps,
-                                                   const std::vector<double>& Zs,
+                                                   const Eigen::Ref<const Eigen::RowVectorXd>& z_shocks,
                                                    const std::vector<double>& ratePath) const {
     if (!ratePath.empty() && static_cast<int>(ratePath.size()) != numSteps + 1) {
         throw std::invalid_argument("Rate path size must be numSteps + 1.");
@@ -48,7 +48,7 @@ std::vector<double> Asset::simulateGbmPathWithRate(double startPrice, double dri
     for (int i = 0; i < numSteps; ++i) {
         double rate = ratePath.empty() ? 0.0 : ratePath[i];
         double drift_term = (rate + driftSpread - variance_penalty) * dt;
-        double exponent = drift_term + vol_term * Zs[i];
+        double exponent = drift_term + vol_term * z_shocks[i];
         currentPrice *= std::exp(exponent);
         path.push_back(currentPrice);
     }

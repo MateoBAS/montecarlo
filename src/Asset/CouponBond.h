@@ -25,6 +25,6 @@ public:
                double maturity, std::shared_ptr<const InterestRateModel> rateModel);
                
     std::vector<double> generatePath(double totalTime, int numSteps,
-                                     const std::vector<double>& Zs,
+                                     const Eigen::Ref<const Eigen::RowVectorXd>& z_shocks,
                                      const std::vector<double>& ratePath) const override;
 };

@@ -32,7 +32,7 @@ public:
 private:
     // Cambiamos Eigen::MatrixXd& L por corrMatrix para poder usar tu CorrelatedGenerator
     static std::vector<double> runBatch(int sims, double time, int steps, 
-                                        const Portfolio& port, const Eigen::MatrixXd& corrMatrix,
+                                        const Portfolio& port, const Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>& corrMatrix,
                                         const InterestRateModel* rateModel, int seed, RNGType rngType);
 };
 

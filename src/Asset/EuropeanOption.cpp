@@ -6,7 +6,7 @@ EuropeanOption::EuropeanOption(std::string name, double optionPremium, double un
     strike(strike), driftSpread(drift), volatility(volatility), type(type) {}
 
 std::vector<double> EuropeanOption::generatePath(double totalTime, int numSteps,
-                                 const std::vector<double>& Zs,
+                                 const Eigen::Ref<const Eigen::RowVectorXd>& z_shocks,
                                  const std::vector<double>& ratePath) const {
     std::vector<double> path;
     path.reserve(numSteps + 1);
@@ -15,7 +15,7 @@ std::vector<double> EuropeanOption::generatePath(double totalTime, int numSteps,
     path.push_back(getInitialPrice());
 
     std::vector<double> underlyingPath = simulateGbmPathWithRate(
-        underlyingInitialPrice, driftSpread, volatility, totalTime, numSteps, Zs, ratePath);
+        underlyingInitialPrice, driftSpread, volatility, totalTime, numSteps, z_shocks, ratePath);
 
     // 1. Simulamos la trayectoria del activo subyacente
     for (size_t i = 1; i < underlyingPath.size(); ++i) {

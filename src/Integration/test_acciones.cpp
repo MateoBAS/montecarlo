@@ -43,7 +43,7 @@ BOOST_AUTO_TEST_CASE(Amdahl_Con_Incertidumbre) {
     const int medidasPorPunto = 1000;
     const int iteracionesCalentamiento = 25;
     
-    std::string rutaCSV = "../graphics/amdahl_estadistico.csv";
+    std::string rutaCSV = "../graphics/amdahl_estadistico_curvas_tipos.csv";
     std::ofstream archivo(rutaCSV);
     
     if (!archivo.is_open()) {
@@ -101,6 +101,103 @@ BOOST_AUTO_TEST_CASE(Amdahl_Con_Incertidumbre) {
     
     archivo.close();
     BOOST_CHECK(true); 
+}
+
+BOOST_AUTO_TEST_CASE(Amdahl_Con_Incertidumbre_Cartera_Grande) {
+    std::cout << "--> Iniciando benchmark de Amdahl con cartera grande...\n";
+
+    Portfolio cartera;
+    std::vector<std::shared_ptr<GBMAsset>> activos;
+    activos.reserve(16);
+
+    activos.push_back(std::make_shared<GBMAsset>("TechA", 150.0, 0.05, 0.25));
+    activos.push_back(std::make_shared<GBMAsset>("TechB", 200.0, 0.08, 0.30));
+    activos.push_back(std::make_shared<GBMAsset>("BankA", 90.0, 0.04, 0.18));
+    activos.push_back(std::make_shared<GBMAsset>("BankB", 110.0, 0.045, 0.20));
+    activos.push_back(std::make_shared<GBMAsset>("EnergyA", 75.0, 0.03, 0.28));
+    activos.push_back(std::make_shared<GBMAsset>("EnergyB", 85.0, 0.035, 0.26));
+    activos.push_back(std::make_shared<GBMAsset>("RetailA", 60.0, 0.025, 0.22));
+    activos.push_back(std::make_shared<GBMAsset>("RetailB", 72.0, 0.028, 0.24));
+    activos.push_back(std::make_shared<GBMAsset>("IndustrialA", 130.0, 0.04, 0.19));
+    activos.push_back(std::make_shared<GBMAsset>("IndustrialB", 140.0, 0.042, 0.21));
+    activos.push_back(std::make_shared<GBMAsset>("PharmaA", 180.0, 0.055, 0.17));
+    activos.push_back(std::make_shared<GBMAsset>("PharmaB", 165.0, 0.05, 0.16));
+
+    for (size_t i = 0; i < activos.size(); ++i) {
+        cartera.addPosition(activos[i], 20.0 + static_cast<double>(i) * 2.5);
+    }
+
+    SimConfig config;
+    config.totalSims = 100000;
+    config.totalTime = 10.0 / 252.0;
+    config.numSteps = 10;
+
+    Eigen::MatrixXd corr = Eigen::MatrixXd::Identity(static_cast<int>(activos.size()), static_cast<int>(activos.size()));
+    for (int i = 0; i < corr.rows(); ++i) {
+        for (int j = i + 1; j < corr.cols(); ++j) {
+            double value = 0.15 + 0.01 * static_cast<double>((i + j) % 5);
+            corr(i, j) = value;
+            corr(j, i) = value;
+        }
+    }
+    config.corrMatrix = corr;
+
+    const int maxHilos = std::thread::hardware_concurrency();
+    const int medidasPorPunto = 300;
+    const int iteracionesCalentamiento = 10;
+
+    std::string rutaCSV = "../graphics/amdahl_estadistico_cartera_grande.csv";
+    std::ofstream archivo(rutaCSV);
+
+    if (!archivo.is_open()) {
+        BOOST_FAIL("Fallo al crear el archivo CSV en ../graphics/");
+    }
+
+    archivo << "Hilos,Tiempo_Medio_ms,Desviacion_ms\n";
+
+    std::cout << "Activos en cartera: " << activos.size() << "\n";
+    std::cout << "Mediciones por punto: " << medidasPorPunto << "\n";
+    std::cout << "Por favor, no uses el PC mientras se ejecuta este test...\n\n";
+
+    for (int hilos = 1; hilos <= maxHilos; ++hilos) {
+        config.numCores = hilos;
+
+        for (int w = 0; w < iteracionesCalentamiento; ++w) {
+            MonteCarloEngine::run(cartera, config);
+        }
+
+        std::vector<double> tiempos(medidasPorPunto);
+        for (int m = 0; m < medidasPorPunto; ++m) {
+            auto inicio = std::chrono::high_resolution_clock::now();
+
+            RiskCalculator report = MonteCarloEngine::run(cartera, config);
+            volatile double var = report.calculateVaR(0.99);
+
+            auto fin = std::chrono::high_resolution_clock::now();
+            tiempos[m] = std::chrono::duration<double, std::milli>(fin - inicio).count();
+        }
+
+        double sumaTiempos = std::accumulate(tiempos.begin(), tiempos.end(), 0.0);
+        double media = sumaTiempos / medidasPorPunto;
+
+        double sumaDiferenciasCuadrado = 0.0;
+        for (double t : tiempos) {
+            sumaDiferenciasCuadrado += (t - media) * (t - media);
+        }
+        double varianza = sumaDiferenciasCuadrado / (medidasPorPunto - 1);
+        double desviacionEstandar = std::sqrt(varianza);
+
+        archivo << hilos << "," << media << "," << desviacionEstandar << "\n";
+
+        std::cout << "Hilos: " << hilos
+                  << " | T_Medio: " << media << " ms"
+                  << " | StdDev: ±" << desviacionEstandar << " ms\n";
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    }
+
+    archivo.close();
+    BOOST_CHECK(true);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
@@ -233,6 +330,81 @@ BOOST_AUTO_TEST_CASE(Ejemplo_Con_Tipos_y_Equity) {
         BOOST_CHECK(std::isfinite(var99));
         BOOST_CHECK(std::isfinite(es99));
     });
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+
+BOOST_AUTO_TEST_SUITE(Rendimiento_Eigen)
+
+BOOST_AUTO_TEST_CASE(Rendimiento) {
+    const int numAssets = 100;
+    const int steps = 1000;
+    const int iterations = 2000;
+
+    // Matriz de Eigen (Por defecto: Column-Major)
+    Eigen::MatrixXd Z_corr = Eigen::MatrixXd::Random(numAssets, steps);
+    
+    // El destino clásico (Vector de vectores)
+    std::vector<std::vector<double>> Z_path(numAssets, std::vector<double>(steps, 0.0));
+
+    // ==========================================
+    // TEST 1: RECORRIDO INCORRECTO (Mal acceso a Caché)
+    // Activos fuera (filas), Pasos dentro (columnas)
+    // ==========================================
+    auto start_bad = std::chrono::high_resolution_clock::now();
+    
+    for (int i = 0; i < iterations; ++i) {
+        for (int a = 0; a < numAssets; ++a) {
+            for (int s = 0; s < steps; ++s) {
+                // Saltando de columna en columna en memoria contigua -> Cache Miss
+                Z_path[a][s] = Z_corr(a, s); 
+            }
+        }
+    }
+    
+    auto end_bad = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double, std::milli> elapsed_bad = end_bad - start_bad;
+
+    // Aseguramos que el compilador no haya eliminado el bucle
+    BOOST_CHECK_NE(Z_path[0][0], 999.0); 
+
+    // ==========================================
+    // TEST 2: RECORRIDO OPTIMIZADO (Buen acceso a Caché)
+    // Pasos fuera (columnas), Activos dentro (filas)
+    // ==========================================
+    auto start_good = std::chrono::high_resolution_clock::now();
+    
+    for (int i = 0; i < iterations; ++i) {
+        for (int s = 0; s < steps; ++s) {
+            for (int a = 0; a < numAssets; ++a) {
+                // Leyendo la columna de Eigen verticalmente hacia abajo -> Memoria contigua
+                Z_path[a][s] = Z_corr(a, s); 
+            }
+        }
+    }
+    
+    auto end_good = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double, std::milli> elapsed_good = end_good - start_good;
+
+    // Aseguramos que el compilador no haya eliminado el bucle
+    BOOST_CHECK_EQUAL(Z_path[numAssets - 1][steps - 1], Z_corr(numAssets - 1, steps - 1));
+
+    // ==========================================
+    // RESULTADOS
+    // ==========================================
+    BOOST_TEST_MESSAGE("\n==========================================");
+    BOOST_TEST_MESSAGE("  BENCHMARK: LOCALIDAD DE CACHÉ EN EIGEN  ");
+    BOOST_TEST_MESSAGE("==========================================");
+    BOOST_TEST_MESSAGE("Tiempo Recorrido Incorrecto: " << elapsed_bad.count() << " ms");
+    BOOST_TEST_MESSAGE("Tiempo Recorrido Optimizado: " << elapsed_good.count() << " ms");
+    
+    double mejora = ((elapsed_bad.count() - elapsed_good.count()) / elapsed_bad.count()) * 100.0;
+    BOOST_TEST_MESSAGE("Rendimiento ganado: " << mejora << "%");
+    BOOST_TEST_MESSAGE("==========================================\n");
+
+    // El test pasará si la versión optimizada es estrictamente más rápida
+    BOOST_CHECK_LT(elapsed_good.count(), elapsed_bad.count());
 }
 
 BOOST_AUTO_TEST_SUITE_END()

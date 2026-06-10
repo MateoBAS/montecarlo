@@ -6,7 +6,7 @@ BarrierOption::BarrierOption(std::string name, double optionPremium, double unde
     strike(strike), barrier(barrier), driftSpread(drift), volatility(volatility) {}
 
 std::vector<double> BarrierOption::generatePath(double totalTime, int numSteps,
-                                const std::vector<double>& Zs,
+                                const Eigen::Ref<const Eigen::RowVectorXd>& z_shocks,
                                 const std::vector<double>& ratePath) const {
     std::vector<double> path;
     path.reserve(numSteps + 1);
@@ -15,7 +15,7 @@ std::vector<double> BarrierOption::generatePath(double totalTime, int numSteps,
     path.push_back(getInitialPrice());
 
     std::vector<double> underlyingPath = simulateGbmPathWithRate(
-        underlyingInitialPrice, driftSpread, volatility, totalTime, numSteps, Zs, ratePath);
+        underlyingInitialPrice, driftSpread, volatility, totalTime, numSteps, z_shocks, ratePath);
 
     bool knockedOut = false;
 

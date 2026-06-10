@@ -4,11 +4,21 @@
 #include <vector>
 #include <cmath>
 
+#include <Eigen/Dense>
+
 // Incluye tus cabeceras reales
 #include "Asset/GBMAsset.h"
 #include "Asset/EuropeanOption.h"
 #include "Asset/BarrierOption.h"
 #include "Asset/CouponBond.h"
+
+static Eigen::RowVectorXd makeRowVector(const std::vector<double>& values) {
+    Eigen::RowVectorXd row(static_cast<Eigen::Index>(values.size()));
+    for (Eigen::Index i = 0; i < row.size(); ++i) {
+        row[i] = values[static_cast<size_t>(i)];
+    }
+    return row;
+}
 
 // ==========================================
 // SUITE 1: GBMAsset Tests
@@ -25,7 +35,7 @@ BOOST_AUTO_TEST_CASE(DeterministicGrowth_ZeroVol) {
     int numSteps = 3;
     std::vector<double> ratePath(numSteps + 1, 0.0);
     
-    std::vector<double> path = stock.generatePath(totalTime, numSteps, Zs, ratePath);
+    std::vector<double> path = stock.generatePath(totalTime, numSteps, makeRowVector(Zs), ratePath);
     
     BOOST_CHECK_EQUAL(path.size(), 4); // S0 + 3 pasos
     BOOST_CHECK_EQUAL(path[0], 100.0);
@@ -42,7 +52,7 @@ BOOST_AUTO_TEST_CASE(StochasticMovement) {
     // Forzamos Z = 1.0 en un solo paso
     std::vector<double> Zs = {1.0}; 
     std::vector<double> ratePath(2, 0.0);
-    std::vector<double> path = stock.generatePath(1.0, 1, Zs, ratePath);
+    std::vector<double> path = stock.generatePath(1.0, 1, makeRowVector(Zs), ratePath);
     
     // Drift term = (0 - 0.5 * 0.2^2) * 1 = -0.02
     // Vol term = 0.2 * sqrt(1) * 1 = 0.2
@@ -64,7 +74,7 @@ BOOST_AUTO_TEST_CASE(CallOption_InTheMoney) {
     std::vector<double> Zs = {0.0};
     std::vector<double> ratePath(2, 0.0);
     
-    std::vector<double> path = call.generatePath(1.0, 1, Zs, ratePath);
+    std::vector<double> path = call.generatePath(1.0, 1, makeRowVector(Zs), ratePath);
     
     // S_T = 100 * exp(0.10) = 110.517
     // Payoff Call = Max(S_T - K, 0) = 10.517
@@ -80,7 +90,7 @@ BOOST_AUTO_TEST_CASE(PutOption_OutOfTheMoney) {
     std::vector<double> Zs = {0.0};
     std::vector<double> ratePath(2, 0.0);
     
-    std::vector<double> path = put.generatePath(1.0, 1, Zs, ratePath);
+    std::vector<double> path = put.generatePath(1.0, 1, makeRowVector(Zs), ratePath);
     
     // S_T = 110.517. Como K=100 y es Put, OTM -> Payoff = 0.0
     BOOST_CHECK_SMALL(path.back(), 1e-9); 
@@ -100,7 +110,7 @@ BOOST_AUTO_TEST_CASE(UpAndOut_NoKnockOut) {
     // 2 pasos. Zs forzados para subir un poco pero sin tocar 120
     std::vector<double> Zs = {0.5, 0.5}; 
     std::vector<double> ratePath(3, 0.0);
-    std::vector<double> path = barrierOpt.generatePath(1.0, 2, Zs, ratePath);
+    std::vector<double> path = barrierOpt.generatePath(1.0, 2, makeRowVector(Zs), ratePath);
     
     // Como no supera 120, debe tener un payoff positivo (es una Call por defecto en tu código)
     BOOST_CHECK(path.back() > 0.0);
@@ -113,7 +123,7 @@ BOOST_AUTO_TEST_CASE(UpAndOut_KnocksOut) {
     // El primer Z=5.0 forzará un salto enorme en el primer dt, superando 120 seguro
     std::vector<double> Zs = {5.0, -1.0}; 
     std::vector<double> ratePath(3, 0.0);
-    std::vector<double> path = barrierOpt.generatePath(1.0, 2, Zs, ratePath);
+    std::vector<double> path = barrierOpt.generatePath(1.0, 2, makeRowVector(Zs), ratePath);
     
     // Se ha activado la barrera, el payoff final DEBE ser 0.0
     BOOST_CHECK_SMALL(path.back(), 1e-9);
@@ -141,7 +151,7 @@ BOOST_AUTO_TEST_CASE(SimulatedYieldPullToPar) {
     // Simulamos 1 año entero. Los tipos no cambian (Vol=0, Z=0)
     std::vector<double> Zs = {0.0}; 
     std::vector<double> ratePath(2, 0.0);
-    std::vector<double> path = bond.generatePath(1.0, 1, Zs, ratePath);
+    std::vector<double> path = bond.generatePath(1.0, 1, makeRowVector(Zs), ratePath);
     
     // Al quedar 1 año, y seguir la TIR al 5%, el precio sigue siendo 1000
     // NOTA: Tu código actual devuelve un path de tamaño 2 para bonos [PrecioInicial, PrecioFinal]
@@ -156,7 +166,7 @@ BOOST_AUTO_TEST_CASE(PriceDropsWhenYieldRises) {
     // Forzamos un Z positivo para que la TIR suba artificialmente
     std::vector<double> Zs = {2.0}; 
     std::vector<double> ratePath(2, 0.0);
-    std::vector<double> path = bond.generatePath(1.0, 1, Zs, ratePath);
+    std::vector<double> path = bond.generatePath(1.0, 1, makeRowVector(Zs), ratePath);
     
     // Si la TIR sube, el precio del bono DEBE caer por debajo de 1000
     BOOST_CHECK(path.back() < 1000.0);

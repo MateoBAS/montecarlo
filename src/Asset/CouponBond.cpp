@@ -68,7 +68,7 @@ double CouponBond::calculatePriceFromModel(double currentTime, double shortRateA
 }
 
 std::vector<double> CouponBond::generatePath(double totalTime, int numSteps,
-                                             const std::vector<double>& Zs,
+                                             const Eigen::Ref<const Eigen::RowVectorXd>& z_shocks,
                                              const std::vector<double>& ratePath) const {
     std::vector<double> path;
     path.push_back(getInitialPrice());
@@ -83,7 +83,7 @@ std::vector<double> CouponBond::generatePath(double totalTime, int numSteps,
         double simulatedYTM = currentYTM;
 
         for (int i = 0; i < numSteps; ++i) {
-            simulatedYTM += yieldVol * std::sqrt(dt) * Zs[i];
+            simulatedYTM += yieldVol * std::sqrt(dt) * z_shocks[i];
         }
 
         double timeRemaining = maturity - totalTime;

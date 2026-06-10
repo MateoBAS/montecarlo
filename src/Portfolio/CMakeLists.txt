@@ -1,2 +1,2 @@
 add_subdirectory(tests)
-create_library(NAME Portfolio DEPS Asset)
+create_library(NAME Portfolio DEPS Asset InterestRate)
