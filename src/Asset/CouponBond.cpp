@@ -2,13 +2,12 @@
 #include "InterestRate/InterestRateModel.h"
 #include <cmath>
 #include <utility>
+#include <stdexcept>
 
-CouponBond::CouponBond(std::string name, double faceValue, double couponRate, 
+CouponBond::CouponBond(std::string name, double faceValue, double couponRate,
                        double maturity, double currentYTM, double yieldVol)
-    : Asset(name, 0.0), faceValue(faceValue), couponRate(couponRate), 
-    maturity(maturity), currentYTM(currentYTM), yieldVol(yieldVol), rateModel(nullptr) {
-    
-    // Calculamos el precio sucio inicial del bono
+    : Asset(name, 0.0), faceValue(faceValue), couponRate(couponRate),
+      maturity(maturity), currentYTM(currentYTM), yieldVol(yieldVol), rateModel(nullptr) {
     this->initialPrice = calculatePrice(currentYTM, maturity);
 }
 
@@ -29,13 +28,11 @@ double CouponBond::calculatePrice(double yield, double timeToMaturity) const {
     double fractionalTime = timeToMaturity - numCoupons;
     double couponPayment = faceValue * couponRate;
 
-    // Descontamos todos los cupones futuros
     for (int i = 1; i <= numCoupons; ++i) {
         price += couponPayment / std::pow(1.0 + yield, i + fractionalTime);
     }
-    // Descontamos el pago del principal final
     price += faceValue / std::pow(1.0 + yield, numCoupons + fractionalTime);
-    
+
     return price;
 }
 
@@ -67,31 +64,35 @@ double CouponBond::calculatePriceFromModel(double currentTime, double shortRateA
     return price;
 }
 
+double CouponBond::simulateBondPrice(double totalTime, int numSteps,
+                                     const Eigen::Ref<const Eigen::RowVectorXd>& z_shocks,
+                                     const std::vector<double>& ratePath) const {
+    if (z_shocks.size() != numSteps) {
+        throw std::invalid_argument("z_shocks size must match numSteps.");
+    }
+
+    if (rateModel && !ratePath.empty()) {
+        return calculatePriceFromModel(totalTime, ratePath.back());
+    }
+
+    double dt = totalTime / numSteps;
+    double simulatedYTM = currentYTM;
+
+    for (int i = 0; i < numSteps; ++i) {
+        simulatedYTM += yieldVol * std::sqrt(dt) * z_shocks[i];
+    }
+
+    return calculatePrice(simulatedYTM, maturity - totalTime);
+}
+
+double CouponBond::simulateFinalValue(double totalTime, int numSteps,
+                                      const Eigen::Ref<const Eigen::RowVectorXd>& z_shocks,
+                                      const std::vector<double>& ratePath) const {
+    return simulateBondPrice(totalTime, numSteps, z_shocks, ratePath);
+}
+
 std::vector<double> CouponBond::generatePath(double totalTime, int numSteps,
                                              const Eigen::Ref<const Eigen::RowVectorXd>& z_shocks,
                                              const std::vector<double>& ratePath) const {
-    std::vector<double> path;
-    path.push_back(getInitialPrice());
-
-    double finalPrice = 0.0;
-
-    if (rateModel && !ratePath.empty()) {
-        double shortRateAtTime = ratePath.back();
-        finalPrice = calculatePriceFromModel(totalTime, shortRateAtTime);
-    } else {
-        double dt = totalTime / numSteps;
-        double simulatedYTM = currentYTM;
-
-        for (int i = 0; i < numSteps; ++i) {
-            simulatedYTM += yieldVol * std::sqrt(dt) * z_shocks[i];
-        }
-
-        double timeRemaining = maturity - totalTime;
-        finalPrice = calculatePrice(simulatedYTM, timeRemaining);
-    }
-
-    // Solo nos interesa el precio final para nuestra arquitectura actual
-    path.push_back(finalPrice);
-
-    return path;
+    return {getInitialPrice(), simulateFinalValue(totalTime, numSteps, z_shocks, ratePath)};
 }

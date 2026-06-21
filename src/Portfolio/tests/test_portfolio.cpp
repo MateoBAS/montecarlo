@@ -26,16 +26,24 @@ public:
     MockAsset(std::string name, double initPrice, double finalPrice) 
         : Asset(std::move(name), initPrice), finalSimulatedPrice(finalPrice) {}
 
-    // Sobrescribimos el método virtual puro
+    double simulateFinalValue(double totalTime, int numSteps,
+                              const Eigen::Ref<const Eigen::RowVectorXd>& z_shocks,
+                              const std::vector<double>& ratePath) const override {
+        (void)totalTime;
+        (void)numSteps;
+        (void)z_shocks;
+        (void)ratePath;
+        return finalSimulatedPrice;
+    }
+
     std::vector<double> generatePath(double totalTime, int numSteps,
                                      const Eigen::Ref<const Eigen::RowVectorXd>& z_shocks,
                                      const std::vector<double>& ratePath) const override {
-        // Creamos un path ficticio. Solo nos importa que el último elemento sea finalSimulatedPrice
         (void)totalTime;
         (void)z_shocks;
         (void)ratePath;
-        std::vector<double> path(numSteps + 1, getInitialPrice()); 
-        path.back() = finalSimulatedPrice; 
+        std::vector<double> path(numSteps + 1, getInitialPrice());
+        path.back() = finalSimulatedPrice;
         return path;
     }
 };

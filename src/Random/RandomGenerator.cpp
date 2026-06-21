@@ -14,26 +14,6 @@ void MersenneTwisterGen::generateStandardNormals(std::vector<double>& vec) {
     }
 }
 
-AntitheticGenerator::AntitheticGenerator(RandomGenerator* innerGen) 
-    : innerGenerator(innerGen), returnNegatedNext(false), lastGeneratedNormal(0.0) {}
-
-double AntitheticGenerator::getStandardNormal() {
-    if (returnNegatedNext) {
-        returnNegatedNext = false;
-        return -lastGeneratedNormal; 
-    } else {
-        lastGeneratedNormal = innerGenerator->getStandardNormal();
-        returnNegatedNext = true;
-        return lastGeneratedNormal;
-    }
-}
-
-void AntitheticGenerator::generateStandardNormals(std::vector<double>& vec) {
-    for (double& v : vec) {
-        v = getStandardNormal();
-    }
-}
-
 BoostSobolGenerator::BoostSobolGenerator(std::size_t dimension) 
     : sobolEngine(dimension) {}
 

@@ -40,13 +40,8 @@ public:
 
         double futureValue = 0.0;
         for (size_t i = 0; i < positions.size(); ++i) {
-            // Z_matrix.row(i) extrae la fila contigua en memoria de forma instantánea.
-            // NOTA: Para máxima optimización, tu función 'generatePath' debería 
-            // aceptar: const Eigen::Ref<const Eigen::RowVectorXd>&
-            std::vector<double> path = positions[i].asset->generatePath(
+            double finalPrice = positions[i].asset->simulateFinalValue(
                 totalTime, numSteps, Z_matrix.row(i), ratePath);
-            
-            double finalPrice = path.back();
             futureValue += finalPrice * positions[i].quantity;
         }
 

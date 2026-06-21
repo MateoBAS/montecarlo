@@ -23,6 +23,11 @@ struct SimConfig {
     int numCores;
     RNGType rngType = RNGType::MersenneTwister;
     std::shared_ptr<InterestRateModel> rateModel = nullptr;
+
+    // Errores estándar de VaR/ES (desactivado por defecto por coste computacional).
+    bool computeStandardErrors = false;
+    int bootstrapReplications = 256;
+    int sobolBatchCount = 32;
 };
 
 class MonteCarloEngine {
@@ -30,7 +35,6 @@ public:
     static RiskCalculator run(const Portfolio& portfolio, const SimConfig& config);
 
 private:
-    // Cambiamos Eigen::MatrixXd& L por corrMatrix para poder usar tu CorrelatedGenerator
     static std::vector<double> runBatch(int sims, double time, int steps, 
                                         const Portfolio& port, const Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>& corrMatrix,
                                         const InterestRateModel* rateModel, int seed, RNGType rngType);

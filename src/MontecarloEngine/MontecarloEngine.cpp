@@ -1,11 +1,37 @@
 #include "MonteCarloEngine.h"
 #include "InterestRate/InterestRateModel.h"
+#include "Metrics/MonteCarloErrorPolicy.h"
 #include "Random/RandomGenerator.h"
 #include "Random/BrownianBridge.h"
 #include <thread>
 #include <future>
 #include <memory>
 #include <stdexcept>
+
+namespace {
+
+StandardErrorOptions buildStandardErrorOptions(const SimConfig& config) {
+    StandardErrorOptions options;
+    options.enabled = config.computeStandardErrors;
+    options.bootstrapReplications = config.bootstrapReplications;
+    options.sobolBatchCount = config.sobolBatchCount;
+
+    switch (config.rngType) {
+        case RNGType::MersenneTwister:
+            options.scheme = ErrorSampleScheme::Independent;
+            break;
+        case RNGType::Antithetic:
+            options.scheme = ErrorSampleScheme::AntitheticPaired;
+            break;
+        case RNGType::Sobol:
+            options.scheme = ErrorSampleScheme::SobolBatchMeans;
+            break;
+    }
+
+    return options;
+}
+
+}  // namespace
 
 RiskCalculator MonteCarloEngine::run(const Portfolio& portfolio, const SimConfig& config) {
     int numCores = config.numCores;
@@ -37,7 +63,7 @@ RiskCalculator MonteCarloEngine::run(const Portfolio& portfolio, const SimConfig
         allPnLs.insert(allPnLs.end(), batch.begin(), batch.end());
     }
 
-    return RiskCalculator(allPnLs);
+    return RiskCalculator(allPnLs, buildStandardErrorOptions(config));
 }
 
 std::vector<double> MonteCarloEngine::runBatch(int sims, double time, int steps,
@@ -52,19 +78,22 @@ std::vector<double> MonteCarloEngine::runBatch(int sims, double time, int steps,
     std::vector<double> results;
     results.reserve(sims);
 
+    const int iterations = (rngType == RNGType::Antithetic) ? sims / 2 : sims;
+
     // 1. Inicialización del Generador de Números Aleatorios (RNG)
     std::unique_ptr<RandomGenerator> baseRng;
     if (rngType == RNGType::Sobol) {
         auto sobol = std::make_unique<BoostSobolGenerator>(pathDimension);
-        unsigned long long elementosASaltar = (unsigned long long)seed * sims * pathDimension;
-        sobol->skip(elementosASaltar); 
+        unsigned long long elementosASaltar =
+            static_cast<unsigned long long>(seed) * static_cast<unsigned long long>(sims) *
+            static_cast<unsigned long long>(pathDimension);
+        sobol->skip(elementosASaltar);
         baseRng = std::move(sobol);
     } else {
-        baseRng = std::make_unique<MersenneTwisterGen>(1234 + seed); 
+        baseRng = std::make_unique<MersenneTwisterGen>(1234 + seed);
     }
 
     BrownianBridge bridge(steps, time);
-    int iterations = (rngType == RNGType::Antithetic) ? (sims / 2) : sims;
 
     // --- HOISTING DE MEMORIA OBLIGATORIA (Estructuras críticas en la pila) ---
     std::vector<double> z_vec(pathDimension);
@@ -75,10 +104,6 @@ std::vector<double> MonteCarloEngine::runBatch(int sims, double time, int steps,
     
     MatrixRM Z_indep(static_cast<int>(numFactors), steps);
     MatrixRM Z_corr(static_cast<int>(numFactors), steps);
-    
-    // Matriz intermedia contigua exclusiva para la Renta Variable (Equity).
-    // Esto soluciona la excepción de strides al mapear filas con Eigen::Ref en Asset.
-    MatrixRM Z_equity(static_cast<int>(numAssets), steps);
 
     // --- GESTIÓN SELECTIVA DE MEMORIA (0 bytes en el Heap si no se usan) ---
     std::vector<double> sobol_asset;
@@ -142,31 +167,28 @@ std::vector<double> MonteCarloEngine::runBatch(int sims, double time, int steps,
             ratePath = rateModel->simulateShortRatePath(time, steps, Z_rate);
         }
 
-        // Extraemos en bloque únicamente las filas de los activos (omitimos la tasa si existe)
-        // a nuestra matriz contigua intermedia, blindando la firma de Asset frente a excepciones.
-        Z_equity = Z_corr.topRows(numAssets);
+        // Vista sobre las filas de activos (RowMajor → cada fila es contigua en memoria).
+        auto Z_equity = Z_corr.topRows(static_cast<Eigen::Index>(numAssets));
 
-        // =====================================================================
-        // TRAYECTORIA PRINCIPAL
-        // =====================================================================
-        results.push_back(port.simulatePathPnL(time, steps, Z_equity, ratePath, rateModel));
+        const double primaryPnL =
+            port.simulatePathPnL(time, steps, Z_equity, ratePath, rateModel);
 
-        // =====================================================================
-        // TRAYECTORIA ANTITÉTICA
-        // =====================================================================
         if (rngType == RNGType::Antithetic) {
             if (useRates) {
                 int rateIndex = static_cast<int>(numFactors) - 1;
                 for (int s = 0; s < steps; ++s) {
-                    // Invertimos el signo de los shocks de la tasa
                     Z_rate_anti[s] = -Z_corr(rateIndex, s);
                 }
                 ratePathAnti = rateModel->simulateShortRatePath(time, steps, Z_rate_anti);
             }
 
-            // Expresión perezosa de Eigen aplicada sobre la matriz empaquetada:
-            // Invierte los signos al vuelo sin reservas adicionales de memoria RAM.
-            results.push_back(port.simulatePathPnL(time, steps, -Z_equity, ratePathAnti, rateModel));
+            const double antitheticPnL =
+                port.simulatePathPnL(time, steps, -Z_equity, ratePathAnti, rateModel);
+            // VaR/ES requieren la cola empírica completa; promediar pares subestima ~×2 el riesgo.
+            results.push_back(primaryPnL);
+            results.push_back(antitheticPnL);
+        } else {
+            results.push_back(primaryPnL);
         }
     }
 

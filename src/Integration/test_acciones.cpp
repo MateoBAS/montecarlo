@@ -18,6 +18,28 @@
 #include "InterestRate/YieldCurve.h"
 #include "InterestRate/HullWhiteModel.h"
 
+// ============================================================================
+// SimConfig — referencia rápida (MontecarloEngine.h)
+// ============================================================================
+// totalSims   : número de trayectorias Monte Carlo
+// totalTime   : horizonte de simulación (años)
+// numSteps    : pasos temporales (dt = totalTime / numSteps)
+// numCores    : hilos para paralelizar batches
+// rngType     : MersenneTwister | Antithetic | Sobol
+// rateModel   : nullptr → sin dinámica de tipos (drift fijo, sin descuento HW)
+//               shared_ptr<HullWhiteModel> → simula ratePath, acopla drift y descuenta
+// corrMatrix  : sin tipos → numActivos × numActivos
+//               con tipos  → (numActivos + 1) × (numActivos + 1), última fila/col = factor tasa
+// computeStandardErrors : false → solo VaR/ES puntual; true → adjunta error estándar
+// bootstrapReplications: réplicas bootstrap para ES (MT/Antithetic; esquema CLT)
+// sobolBatchCount      : nº de lotes para error en Sobol (varianza entre lotes)
+//   Esquema automático según rngType:
+//   - MersenneTwister → bootstrap i.i.d. sobre N muestras
+//   - Antithetic      → N trayectorias primarias + N antitéticas (2N PnL en bruto);
+//                       bootstrap por pares (Z,-Z) para el error
+//   - Sobol           → error por lotes (no CLT i.i.d.)
+// ============================================================================
+
 BOOST_AUTO_TEST_SUITE(Escenario_Rendimiento_Estadistico)
 
 BOOST_AUTO_TEST_CASE(Amdahl_Con_Incertidumbre) {
@@ -29,13 +51,22 @@ BOOST_AUTO_TEST_CASE(Amdahl_Con_Incertidumbre) {
     cartera.addPosition(techA, 50.0);
     cartera.addPosition(techB, 30.0);
 
+    // --- SimConfig: todos los campos explícitos ---
     SimConfig config;
-    config.totalSims = 100000; 
-    config.totalTime = 10.0 / 252.0;
+    config.totalSims = 100000;
+    config.totalTime = 10.0 / 252.0;   // ~10 días hábiles
     config.numSteps = 10;
-    
+    config.numCores = 1;               // Sobrescrito en el bucle de hilos (1 .. maxHilos)
+    config.rngType = RNGType::MersenneTwister;
+    config.rateModel = nullptr;        // Sin Hull-White: drift fijo en equity, sin descuento por tipos
+    config.computeStandardErrors = false;  // Benchmark de tiempos: sin coste extra de errores
+    config.bootstrapReplications = 256;    // Solo aplica si computeStandardErrors=true (MT/Antithetic)
+    config.sobolBatchCount = 32;           // Solo aplica si computeStandardErrors=true y rngType=Sobol
+
+    // Correlación equity-equity (2 activos, sin factor de tipos)
     Eigen::MatrixXd corr(2, 2);
-    corr << 1.0, 0.6, 0.6, 1.0;
+    corr << 1.0, 0.6,
+            0.6, 1.0;
     config.corrMatrix = corr;
 
     // PARÁMETROS ESTADÍSTICOS
@@ -127,11 +158,19 @@ BOOST_AUTO_TEST_CASE(Amdahl_Con_Incertidumbre_Cartera_Grande) {
         cartera.addPosition(activos[i], 20.0 + static_cast<double>(i) * 2.5);
     }
 
+    // --- SimConfig: todos los campos explícitos ---
     SimConfig config;
     config.totalSims = 100000;
-    config.totalTime = 10.0 / 252.0;
+    config.totalTime = 10.0 / 252.0;   // ~10 días hábiles
     config.numSteps = 10;
+    config.numCores = 1;               // Sobrescrito en el bucle de hilos (1 .. maxHilos)
+    config.rngType = RNGType::MersenneTwister;
+    config.rateModel = nullptr;        // Sin Hull-White
+    config.computeStandardErrors = false;  // Benchmark de tiempos: sin coste extra de errores
+    config.bootstrapReplications = 256;
+    config.sobolBatchCount = 32;
 
+    // Correlación equity-equity (12 activos, sin factor de tipos)
     Eigen::MatrixXd corr = Eigen::MatrixXd::Identity(static_cast<int>(activos.size()), static_cast<int>(activos.size()));
     for (int i = 0; i < corr.rows(); ++i) {
         for (int j = i + 1; j < corr.cols(); ++j) {
@@ -220,14 +259,21 @@ BOOST_AUTO_TEST_CASE(Comparativa_Generadores) {
     cartera.addPosition(stockA, 100.0);
     cartera.addPosition(stockB, 50.0);
 
-    // 2. Configuración base del motor
+    // 2. Configuración base del motor (todos los campos explícitos)
     SimConfig config;
-    config.totalTime = 1.0; // 1 año de proyección
-    config.numSteps = 252;  // Simulación diaria
-    config.numCores = std::thread::hardware_concurrency();
-    
+    config.totalSims = 128;            // Sobrescrito en el bucle (128 .. 2^20)
+    config.totalTime = 1.0;            // 1 año de proyección
+    config.numSteps = 252;             // Simulación diaria
+    config.numCores = static_cast<int>(std::thread::hardware_concurrency());
+    config.rngType = RNGType::MersenneTwister;  // Sobrescrito por iteración (MT / Antithetic / Sobol)
+    config.rateModel = nullptr;        // Sin Hull-White
+    config.computeStandardErrors = false;  // Convergencia pesada (hasta 2^20 sims): sin errores MC
+    config.bootstrapReplications = 256;    // Activar junto con computeStandardErrors=true
+    config.sobolBatchCount = 32;           // Activar junto con computeStandardErrors=true (Sobol)
+
+    // Correlación equity-equity (2 activos, sin factor de tipos)
     Eigen::MatrixXd corr(2, 2);
-    corr << 1.0, 0.4, 
+    corr << 1.0, 0.4,
             0.4, 1.0;
     config.corrMatrix = corr;
 
@@ -256,17 +302,17 @@ BOOST_AUTO_TEST_CASE(Comparativa_Generadores) {
         // --- A) Mersenne Twister (Pseudo-Random estándar) ---
         config.rngType = RNGType::MersenneTwister;
         RiskCalculator calcMT = MonteCarloEngine::run(cartera, config);
-        double varMT = calcMT.calculateVaR(0.95);
+        double varMT = calcMT.calculateVaR(0.99);
 
         // --- B) Variables Antitéticas (Reducción de Varianza) ---
         config.rngType = RNGType::Antithetic;
         RiskCalculator calcAnti = MonteCarloEngine::run(cartera, config);
-        double varAnti = calcAnti.calculateVaR(0.95);
+        double varAnti = calcAnti.calculateVaR(0.99);
 
         // --- C) Secuencia de Sobol (Quasi-Random) ---
         config.rngType = RNGType::Sobol;
         RiskCalculator calcSobol = MonteCarloEngine::run(cartera, config);
-        double varSobol = calcSobol.calculateVaR(0.95);
+        double varSobol = calcSobol.calculateVaR(0.99);
 
         // Guardar métricas en el CSV
         archivo << sims << "," << varMT << "," << varAnti << "," << varSobol << "\n";
@@ -295,7 +341,8 @@ BOOST_AUTO_TEST_SUITE(Escenario_HullWhite_Completo)
 BOOST_AUTO_TEST_CASE(Ejemplo_Con_Tipos_y_Equity) {
     std::cout << "\n--> Iniciando ejemplo completo con Hull-White...\n";
 
-    // 1) Curva inicial (zero rates) y modelo HW
+    // 1) Curva inicial (zero rates) y parámetros Hull-White
+    //    meanReversion=0.05, volTipos=0.01 — ajustar aquí para calibración futura
     YieldCurve curve({0.5, 1.0, 2.0, 5.0, 10.0}, {0.02, 0.022, 0.025, 0.03, 0.032});
     auto hw = std::make_shared<HullWhiteModel>(0.05, 0.01, curve);
 
@@ -306,15 +353,21 @@ BOOST_AUTO_TEST_CASE(Ejemplo_Con_Tipos_y_Equity) {
     cartera.addPosition(stock, 50.0);
     cartera.addPosition(bond, 5.0);
 
-    // 3) Configuración del motor
+    // 3) SimConfig: todos los campos explícitos (con dinámica de tipos activa)
     SimConfig config;
-    config.totalSims = 2000;
+    config.totalSims = 20000;
     config.totalTime = 1.0;
     config.numSteps = 50;
-    config.numCores = std::thread::hardware_concurrency();
-    config.rateModel = hw;
+    config.numCores = static_cast<int>(std::thread::hardware_concurrency());
+    //config.rngType = RNGType::MersenneTwister;
+    config.rngType = RNGType::Antithetic;
+    //config.rngType = RNGType::Sobol;
+    config.rateModel = hw;             // Activa ratePath, drift acoplado a r_t y descuento
+    config.computeStandardErrors = true;   // Ejemplo didáctico: reportar VaR/ES ± error estándar
+    config.bootstrapReplications = 256;    // ES: bootstrap (esquema CLT con MT)
+    config.sobolBatchCount = 32;           // Ignorado aquí (rngType != Sobol)
 
-    // 4) Matriz de correlación: [Equity, Bond, Rate]
+    // 4) Correlación (numActivos + 1) × (numActivos + 1): [Equity, Bond, Rate]
     Eigen::MatrixXd corr(3, 3);
     corr << 1.0, 0.2, 0.3,
             0.2, 1.0, 0.4,
@@ -323,12 +376,23 @@ BOOST_AUTO_TEST_CASE(Ejemplo_Con_Tipos_y_Equity) {
 
     BOOST_CHECK_NO_THROW({
         RiskCalculator report = MonteCarloEngine::run(cartera, config);
-        double var99 = report.calculateVaR(0.99);
-        double es99 = report.calculateES(0.99);
-        std::cout << "VaR 99% (HW): " << var99 << "\n";
-        std::cout << "ES  99% (HW): " << es99 << "\n";
-        BOOST_CHECK(std::isfinite(var99));
-        BOOST_CHECK(std::isfinite(es99));
+        const RiskEstimate var99 = report.estimateVaR(0.99);
+        const RiskEstimate es99 = report.estimateES(0.99);
+        std::cout << "VaR 99% (HW): " << var99.value;
+        if (var99.hasStandardError()) {
+            std::cout << " +/- " << var99.standardError;
+        }
+        std::cout << "\n";
+        std::cout << "ES  99% (HW): " << es99.value;
+        if (es99.hasStandardError()) {
+            std::cout << " +/- " << es99.standardError;
+        }
+        std::cout << "\n";
+        BOOST_CHECK(std::isfinite(var99.value));
+        BOOST_CHECK(std::isfinite(es99.value));
+        BOOST_CHECK(report.standardErrorsEnabled());
+        BOOST_CHECK(var99.hasStandardError());
+        BOOST_CHECK(es99.hasStandardError());
     });
 }
 
@@ -338,6 +402,7 @@ BOOST_AUTO_TEST_SUITE_END()
 BOOST_AUTO_TEST_SUITE(Rendimiento_Eigen)
 
 BOOST_AUTO_TEST_CASE(Rendimiento) {
+    // Benchmark de localidad de caché en Eigen (independiente de SimConfig / MonteCarloEngine)
     const int numAssets = 100;
     const int steps = 1000;
     const int iterations = 2000;

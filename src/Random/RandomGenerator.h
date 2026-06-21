@@ -24,18 +24,6 @@ public:
     void generateStandardNormals(std::vector<double>& vec) override;
 };
 
-class AntitheticGenerator : public RandomGenerator {
-private:
-    RandomGenerator* innerGenerator;
-    bool returnNegatedNext;
-    double lastGeneratedNormal;
-
-public:
-    AntitheticGenerator(RandomGenerator* innerGen);
-    double getStandardNormal() override;
-    void generateStandardNormals(std::vector<double>& vec) override;
-};
-
 class BoostSobolGenerator : public RandomGenerator {
 private:
     boost::random::sobol sobolEngine;

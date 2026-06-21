@@ -22,22 +22,24 @@ public:
     // La clase base Asset ya se encarga de devolvernos el precio inicial correctamente.
 
     // Sobrescribimos la función que SÍ es virtual pura (= 0), respetando su 'const' al final
-    std::vector<double> generatePath(double totalTime, int numSteps,
-                                     const Eigen::Ref<const Eigen::RowVectorXd>& z_shocks,
-                                     const std::vector<double>& ratePath) const override {
-        std::vector<double> path;
-        
-        // Podemos usar getInitialPrice() porque lo heredamos de la clase padre
-        double currentPrice = getInitialPrice(); 
+    double simulateFinalValue(double totalTime, int numSteps,
+                              const Eigen::Ref<const Eigen::RowVectorXd>& z_shocks,
+                              const std::vector<double>& ratePath) const override {
         (void)totalTime;
         (void)numSteps;
         (void)ratePath;
-        
+
+        double currentPrice = getInitialPrice();
         for (Eigen::Index i = 0; i < z_shocks.size(); ++i) {
-            currentPrice += z_shocks[i]; 
-            path.push_back(currentPrice);
+            currentPrice += z_shocks[i];
         }
-        return path;
+        return currentPrice;
+    }
+
+    std::vector<double> generatePath(double totalTime, int numSteps,
+                                     const Eigen::Ref<const Eigen::RowVectorXd>& z_shocks,
+                                     const std::vector<double>& ratePath) const override {
+        return {getInitialPrice(), simulateFinalValue(totalTime, numSteps, z_shocks, ratePath)};
     }
 };
 BOOST_AUTO_TEST_SUITE(Engine_And_Risk_Tests)

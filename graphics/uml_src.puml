@@ -1,0 +1,185 @@
+@startuml
+skinparam classAttributeIconSize 0
+
+' Interfaces / Abstract
+interface "RandomGenerator" as RandomGenerator {
+  +~getStandardNormal()
+  +~generateStandardNormals(vec)
+}
+
+interface "InterestRateModel" as InterestRateModel {
+  +~simulateShortRatePath(totalTime, numSteps, Zs)
+  +~discountFactorFromPath(ratePath, dt)
+  +~zeroCouponBondPrice(t, T, shortRateAtT)
+  +~initialShortRate()
+}
+
+' Enums / config
+enum OptionType {
+  Call
+  Put
+}
+
+enum RNGType {
+  MersenneTwister
+  Antithetic
+  Sobol
+}
+
+class SimConfig <<struct>> {
+  + totalSims: int
+  + totalTime: double
+  + numSteps: int
+  + corrMatrix: Eigen::MatrixXd
+  + numCores: int
+  + rngType: RNGType
+  + rateModel: std::shared_ptr<InterestRateModel>
+}
+
+' Core classes
+class Asset {
+  - name: std::string
+  - initialPrice: double
+  + getName()
+  + getInitialPrice()
+  + generatePath(totalTime, numSteps, z_shocks, ratePath) : std::vector<double> <<abstract>>
+}
+
+class GBMAsset {
+  - driftSpread: double
+  - volatility: double
+}
+
+class EuropeanOption {
+  - underlyingInitialPrice: double
+  - strike: double
+  - driftSpread: double
+  - volatility: double
+  - type: OptionType
+}
+
+class BarrierOption {
+  - underlyingInitialPrice: double
+  - strike: double
+  - barrier: double
+  - driftSpread: double
+  - volatility: double
+}
+
+class CouponBond {
+  - faceValue: double
+  - couponRate: double
+  - maturity: double
+  - currentYTM: double
+  - yieldVol: double
+  - rateModel: std::shared_ptr<const InterestRateModel>
+}
+
+class Position <<struct>> {
+  + asset: std::shared_ptr<Asset>
+  + quantity: double
+}
+
+class Portfolio {
+  - positions: std::vector<Position>
+  - initialValue: double
+  + addPosition(asset, quantity)
+  + getInitialValue()
+  + getNumAssets()
+  + simulatePathPnL(totalTime, numSteps, Z_matrix, ratePath, rateModel)
+}
+
+class MonteCarloEngine {
+  + {static} run(portfolio, config) : RiskCalculator
+  - {static} runBatch(...)
+}
+
+class RiskCalculator {
+  - sortedPnLs: std::vector<double>
+  + RiskCalculator(simulatedPnLs)
+  + calculateVaR(confidenceLevel)
+  + calculateES(confidenceLevel)
+}
+
+class MathUtils {
+  + {static} inverseNormalCDF(p)
+}
+
+class BrownianBridge {
+  - numSteps: int
+  - totalT: double
+  + transformToStandardNormals(sobolZ, impliedZ)
+}
+
+class MersenneTwisterGen {
+  - generator: std::mt19937
+  - distribution: std::normal_distribution<double>
+}
+
+class BoostSobolGenerator {
+  - sobolEngine: boost::random::sobol
+  - uniformDist: boost::random::uniform_01<double>
+  + skip(steps)
+}
+
+class YieldCurve {
+  - times: std::vector<double>
+  - zeroRates: std::vector<double>
+  + zeroRate(t)
+  + discountFactor(t)
+  + forwardRate(t)
+  + forwardRateDerivative(t)
+}
+
+class HullWhiteModel {
+  - meanReversion: double
+  - volatility: double
+  - curve: YieldCurve
+  - r0: double
+  + simulateShortRatePath(totalTime, numSteps, Zs)
+  + discountFactorFromPath(ratePath, dt)
+  + zeroCouponBondPrice(t, T, shortRateAtT)
+  + initialShortRate()
+  + getCurve()
+}
+
+' Inheritance
+GBMAsset --|> Asset
+EuropeanOption --|> Asset
+BarrierOption --|> Asset
+CouponBond --|> Asset
+
+MersenneTwisterGen --|> RandomGenerator
+BoostSobolGenerator --|> RandomGenerator
+
+HullWhiteModel --|> InterestRateModel
+
+' Portfolio / assets
+Portfolio *-- "*" Position : positions
+Position --> "1" Asset : asset
+EuropeanOption --> OptionType : type
+CouponBond ..> InterestRateModel : holds
+HullWhiteModel *-- YieldCurve : curve
+
+' MonteCarloEngine — production flow
+MonteCarloEngine ..> SimConfig : config
+MonteCarloEngine ..> Portfolio : simulates
+MonteCarloEngine ..> RiskCalculator : returns
+SimConfig --> RNGType : rngType
+SimConfig o--> "0..1" InterestRateModel : rateModel
+
+MonteCarloEngine ..> MersenneTwisterGen : creates (default RNG)
+MonteCarloEngine ..> BoostSobolGenerator : creates (Sobol)
+MonteCarloEngine ..> BrownianBridge : uses (Sobol)
+MonteCarloEngine ..> InterestRateModel : simulates rates
+
+BoostSobolGenerator ..> MathUtils : inverseNormalCDF
+
+note bottom of MonteCarloEngine
+  runBatch selecciona RNG según SimConfig.rngType,
+  correlaciona con Cholesky (L * Z),
+  aplica antitéticas negando Z
+  y delega simulatePathPnL al Portfolio.
+end note
+
+@enduml

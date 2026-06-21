@@ -43,7 +43,9 @@ set(CXX_FILE_EXTENSIONS "*.h"  "*.cpp")
 
 # 4. Set Compilation environment
 include_directories(${INCLUDE_HOME} ${EIGEN_ROOT})
-add_definitions(-std=gnu++14)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS ON)
 
 add_compile_options(-O3 -march=native)
 
@@ -60,3 +62,33 @@ add_executable(integration_tests
 target_include_directories(integration_tests PRIVATE ${BOOST_ROOT})
 
 target_link_libraries(integration_tests Asset Portfolio Maths Metrics Random MontecarloEngine Boost::unit_test_framework)
+
+# Tests ligeros: validación rápida del refactor simulateFinalValue / generatePath
+add_executable(light_tests
+    src/LightTests/test_light.cpp
+)
+target_include_directories(light_tests PRIVATE ${BOOST_ROOT})
+target_link_libraries(light_tests Asset Portfolio Metrics Boost::unit_test_framework)
+add_test(NAME light_tests COMMAND light_tests)
+
+add_executable(standard_error_tests
+    src/LightTests/test_standard_errors.cpp
+)
+target_include_directories(standard_error_tests PRIVATE ${BOOST_ROOT})
+target_link_libraries(standard_error_tests Metrics Boost::unit_test_framework)
+add_test(NAME standard_error_tests COMMAND standard_error_tests)
+
+add_executable(antithetic_tests
+    src/LightTests/test_antithetic.cpp
+)
+target_include_directories(antithetic_tests PRIVATE ${BOOST_ROOT})
+target_link_libraries(antithetic_tests Asset Portfolio Metrics MontecarloEngine Boost::unit_test_framework)
+add_test(NAME antithetic_tests COMMAND antithetic_tests)
+
+# Benchmark aislado: localidad ColMajor vs RowMajor (sin dependencias del motor)
+add_executable(layout_benchmark_tests
+    src/LightTests/test_matrix_layout.cpp
+)
+target_include_directories(layout_benchmark_tests PRIVATE ${BOOST_ROOT} ${EIGEN_ROOT})
+target_link_libraries(layout_benchmark_tests Boost::unit_test_framework)
+add_test(NAME layout_benchmark_tests COMMAND layout_benchmark_tests)

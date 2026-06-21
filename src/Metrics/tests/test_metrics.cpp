@@ -27,14 +27,11 @@ BOOST_AUTO_TEST_CASE(InvalidConfidenceLevelThrows) {
 }
 
 BOOST_AUTO_TEST_CASE(VaR_Calculation) {
-    // 10 valores desordenados. 
-    // Ordenados serán: -100, -50, -20, -10, -5, 0, 10, 20, 50, 100
     std::vector<double> pnls = {10.0, -20.0, 100.0, -100.0, -50.0, 0.0, 20.0, -5.0, 50.0, -10.0};
     RiskCalculator riskCalc(pnls);
 
-    // Confianza del 90% (alpha = 0.10)
-    // indice = trunc(10 * 0.10) = 1
-    // PnL en indice 1 de la lista ordenada (-100, -50, ...) es -50.0
+    // Ordenados: -100, -50, -20, -10, -5, 0, 10, 20, 50, 100
+    // Confianza 90% (alpha=0.10): índice = floor(10*0.10) = 1 -> -50
     BOOST_CHECK_CLOSE(riskCalc.calculateVaR(0.90), -50.0, 1e-9);
 
     // Confianza del 80% (alpha = 0.20)
@@ -71,6 +68,15 @@ BOOST_AUTO_TEST_CASE(ExtremeConfidenceLevels_ZeroIndex) {
     // indice = trunc(5 * 0.01) = 0
     BOOST_CHECK_CLOSE(riskCalc.calculateVaR(0.99), -500.0, 1e-9);
     BOOST_CHECK_CLOSE(riskCalc.calculateES(0.99), -500.0, 1e-9);
+}
+
+BOOST_AUTO_TEST_CASE(ES_IsNeverGreaterThanVaR) {
+    std::vector<double> pnls = {10.0, -20.0, 100.0, -100.0, -50.0, 0.0, 20.0, -5.0, 50.0, -10.0};
+    RiskCalculator riskCalc(pnls);
+
+    for (double confidence : {0.80, 0.90, 0.95, 0.99}) {
+        BOOST_CHECK_LE(riskCalc.calculateES(confidence), riskCalc.calculateVaR(confidence));
+    }
 }
 
 BOOST_AUTO_TEST_SUITE_END()

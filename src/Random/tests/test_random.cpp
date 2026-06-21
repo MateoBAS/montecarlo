@@ -4,7 +4,6 @@
 #include <Eigen/Dense>
 
 #include "RandomGenerator.h"
-#include "CorrelatedGenerator.h"
 
 BOOST_AUTO_TEST_SUITE(MersenneTwister_Tests)
 
@@ -31,43 +30,7 @@ BOOST_AUTO_TEST_CASE(VectorGeneration) {
 BOOST_AUTO_TEST_SUITE_END()
 
 // ==========================================
-// SUITE 2: AntitheticGenerator Tests
-// ==========================================
-BOOST_AUTO_TEST_SUITE(Antithetic_Tests)
-
-BOOST_AUTO_TEST_CASE(AntitheticPairs) {
-    MersenneTwisterGen mt(42);
-    AntitheticGenerator antiGen(&mt);
-
-    // El generador debe devolver Z, luego -Z
-    double z1 = antiGen.getStandardNormal();
-    double z2 = antiGen.getStandardNormal();
-    BOOST_CHECK_CLOSE(z1, -z2, 1e-9); // Z1 debe ser igual a -Z2
-
-    // El siguiente par debe ser diferente al primero, pero opuesto entre sí
-    double z3 = antiGen.getStandardNormal();
-    double z4 = antiGen.getStandardNormal();
-    BOOST_CHECK_CLOSE(z3, -z4, 1e-9);
-    
-    BOOST_CHECK(z1 != z3); 
-}
-
-BOOST_AUTO_TEST_CASE(AntitheticVector) {
-    MersenneTwisterGen mt(100);
-    AntitheticGenerator antiGen(&mt);
-    
-    std::vector<double> vec(4);
-    antiGen.generateStandardNormals(vec);
-
-    // Revisamos que los pares contiguos se anulen (z, -z, z2, -z2)
-    BOOST_CHECK_CLOSE(vec[0], -vec[1], 1e-9);
-    BOOST_CHECK_CLOSE(vec[2], -vec[3], 1e-9);
-}
-
-BOOST_AUTO_TEST_SUITE_END()
-
-// ==========================================
-// SUITE 3: BoostSobolGenerator Tests
+// SUITE 2: BoostSobolGenerator Tests
 // ==========================================
 BOOST_AUTO_TEST_SUITE(Sobol_Tests)
 
@@ -93,46 +56,6 @@ BOOST_AUTO_TEST_CASE(SkipFunctionality) {
 
     // El número 6 debería coincidir
     BOOST_CHECK_CLOSE(sobol1.getStandardNormal(), sobol2.getStandardNormal(), 1e-9);
-}
-
-BOOST_AUTO_TEST_SUITE_END()
-
-// ==========================================
-// SUITE 4: CorrelatedGenerator Tests
-// ==========================================
-BOOST_AUTO_TEST_SUITE(Correlated_Tests)
-
-BOOST_AUTO_TEST_CASE(InvalidMatrixThrows) {
-    MersenneTwisterGen mt(42);
-    
-    // Matriz no cuadrada
-    Eigen::MatrixXd nonSquare(2, 3);
-    BOOST_CHECK_THROW(CorrelatedGenerator(&mt, nonSquare), std::invalid_argument);
-
-    // Matriz no definida positiva (ej. correlación mayor a 1 o estructura inválida)
-    Eigen::MatrixXd nonPD(2, 2);
-    nonPD << 1.0, 2.0, 
-             2.0, 1.0; 
-    BOOST_CHECK_THROW(CorrelatedGenerator(&mt, nonPD), std::runtime_error);
-}
-
-BOOST_AUTO_TEST_CASE(ValidCorrelationGeneration) {
-    MersenneTwisterGen mt(42);
-    
-    Eigen::MatrixXd corrMat(3, 3);
-    corrMat << 1.0, 0.5, 0.2,
-               0.5, 1.0, 0.3,
-               0.2, 0.3, 1.0;
-
-    CorrelatedGenerator corrGen(&mt, corrMat);
-    std::vector<double> results = corrGen.getCorrelatedNormals();
-
-    BOOST_CHECK_EQUAL(results.size(), 3);
-    
-    // Verificamos que los números generados no sean NaN
-    for(double z : results) {
-        BOOST_CHECK(!std::isnan(z));
-    }
 }
 
 BOOST_AUTO_TEST_SUITE_END()

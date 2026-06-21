@@ -1,48 +1,57 @@
 #include "BarrierOption.h"
+#include <cmath>
+#include <stdexcept>
 
-BarrierOption::BarrierOption(std::string name, double optionPremium, double underlyingInitialPrice, 
+BarrierOption::BarrierOption(std::string name, double optionPremium, double underlyingInitialPrice,
                              double strike, double barrier, double drift, double volatility)
-    : Asset(std::move(name), optionPremium), underlyingInitialPrice(underlyingInitialPrice), 
-    strike(strike), barrier(barrier), driftSpread(drift), volatility(volatility) {}
+    : Asset(std::move(name), optionPremium), underlyingInitialPrice(underlyingInitialPrice),
+      strike(strike), barrier(barrier), driftSpread(drift), volatility(volatility) {}
 
-std::vector<double> BarrierOption::generatePath(double totalTime, int numSteps,
-                                const Eigen::Ref<const Eigen::RowVectorXd>& z_shocks,
-                                const std::vector<double>& ratePath) const {
-    std::vector<double> path;
-    path.reserve(numSteps + 1);
+double BarrierOption::simulateBarrierPayoff(double totalTime, int numSteps,
+                                            const Eigen::Ref<const Eigen::RowVectorXd>& z_shocks,
+                                            const std::vector<double>& ratePath) const {
+    if (!ratePath.empty() && static_cast<int>(ratePath.size()) != numSteps + 1) {
+        throw std::invalid_argument("Rate path size must be numSteps + 1.");
+    }
+    if (z_shocks.size() != numSteps) {
+        throw std::invalid_argument("z_shocks size must match numSteps.");
+    }
 
-    // El primer valor del path es el coste (prima)
-    path.push_back(getInitialPrice());
+    if (numSteps <= 0) {
+        return std::max(underlyingInitialPrice - strike, 0.0);
+    }
 
-    std::vector<double> underlyingPath = simulateGbmPathWithRate(
-        underlyingInitialPrice, driftSpread, volatility, totalTime, numSteps, z_shocks, ratePath);
-
+    double dt = totalTime / numSteps;
+    double variance_penalty = 0.5 * volatility * volatility;
+    double vol_term = volatility * std::sqrt(dt);
+    double currentPrice = underlyingInitialPrice;
     bool knockedOut = false;
 
-    // 1. Simulamos la trayectoria paso a paso
-    for (size_t i = 1; i < underlyingPath.size(); ++i) {
-        double currentUnderlyingPrice = underlyingPath[i];
+    for (int i = 0; i < numSteps; ++i) {
+        double rate = ratePath.empty() ? 0.0 : ratePath[i];
+        double drift_term = (rate + driftSpread - variance_penalty) * dt;
+        double exponent = drift_term + vol_term * z_shocks[i];
+        currentPrice *= std::exp(exponent);
 
-        // Comprobamos si el subyacente ha tocado o superado la barrera (Up-and-Out)
-        if (currentUnderlyingPrice >= barrier) {
+        if (currentPrice >= barrier) {
             knockedOut = true;
         }
-
-        path.push_back(currentUnderlyingPrice);
     }
 
-    // 2. Calculamos el Payoff
-    double payoff = 0.0;
-
-    // Si NO ha tocado la barrera, paga como una Call estándar
-    if (!knockedOut) {
-        double finalUnderlyingPrice = underlyingPath.back();
-        payoff = std::max(finalUnderlyingPrice - strike, 0.0);
+    if (knockedOut) {
+        return 0.0;
     }
-    // Si knockedOut es true, el payoff se queda en 0.0 automáticamente
+    return std::max(currentPrice - strike, 0.0);
+}
 
-    // 3. Reemplazamos el último valor con el pago real a vencimiento
-    path.back() = payoff;
+double BarrierOption::simulateFinalValue(double totalTime, int numSteps,
+                                         const Eigen::Ref<const Eigen::RowVectorXd>& z_shocks,
+                                         const std::vector<double>& ratePath) const {
+    return simulateBarrierPayoff(totalTime, numSteps, z_shocks, ratePath);
+}
 
-    return path;
+std::vector<double> BarrierOption::generatePath(double totalTime, int numSteps,
+                                                const Eigen::Ref<const Eigen::RowVectorXd>& z_shocks,
+                                                const std::vector<double>& ratePath) const {
+    return {getInitialPrice(), simulateFinalValue(totalTime, numSteps, z_shocks, ratePath)};
 }
