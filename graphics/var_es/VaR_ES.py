@@ -1,6 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from pathlib import Path
 from scipy.stats import norm
+
+SCRIPT_DIR = Path(__file__).resolve().parent
 
 # Nivel de confianza
 alpha = 0.95
@@ -89,5 +92,5 @@ plt.title('VaR y Expected Shortfall en una distribución con cola pesada')
 plt.legend()
 plt.tight_layout()
 
-plt.savefig('var_es_heavy_tail.pdf', dpi=300, bbox_inches='tight')
+plt.savefig(SCRIPT_DIR / 'var_es_heavy_tail.pdf', dpi=300, bbox_inches='tight')
 plt.show()

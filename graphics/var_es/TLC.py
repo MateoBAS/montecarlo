@@ -1,6 +1,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
+from pathlib import Path
 from scipy.stats import norm
+
+SCRIPT_DIR = Path(__file__).resolve().parent
 
 # --- 1. CONFIGURACIÓN DE PARÁMETROS ---
 np.random.seed(41)
@@ -148,5 +151,5 @@ for idx, N in enumerate(valores_N):
 
 # --- 4. MAQUETACIÓN FINAL Y EXPORTACIÓN ---
 plt.tight_layout()
-plt.savefig("comparativa_tlc_suma_media.pdf", bbox_inches="tight", dpi=300)
+plt.savefig(SCRIPT_DIR / "comparativa_tlc_suma_media.pdf", bbox_inches="tight", dpi=300)
 plt.show()

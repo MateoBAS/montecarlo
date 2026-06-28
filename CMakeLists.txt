@@ -47,7 +47,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS ON)
 
-add_compile_options(-O3 -march=native)
+add_compile_options(-O3 -march=native -g)
 
 # 5. Add subdirs
 add_subdirectory(src)

@@ -1,0 +1,115 @@
+' Pagina 2: motor Monte Carlo
+title Motor Monte Carlo
+
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam nodesep 35
+skinparam ranksep 30
+skinparam linetype ortho
+top to bottom direction
+
+class SimConfig <<struct>> {
+  + totalSims, totalTime, numSteps
+  + corrMatrix, numCores
+  + rngType: {MT, Antithetic, Sobol}
+  + matrixLayout: {RowMajor, ColMajor}
+  + rngSeed, rateModel (opc.)
+  + computeStandardErrors
+  + bootstrapReplications, sobolBatchCount
+}
+
+class MonteCarloEngine {
+  + {static} run(portfolio, config) : RiskCalculator
+  - runWithLayout<StorageOrder>(...)
+  - runBatchImpl<StorageOrder>(...)
+}
+
+class PortfolioRef <<referencia>> {
+  + simulatePathPnL(...)
+}
+
+class InterestRateModelRef <<referencia>> {
+  + simulateShortRatePath(...)
+  + discountFactorFromPath(...)
+}
+
+package "Metricas" {
+  class RiskCalculator {
+    + calculateVaR(...), calculateES(...)
+    + estimateVaR(...), estimateES(...)
+    + estimateMeanPnL() : RiskEstimate
+  }
+
+  class StandardErrorOptions <<struct>> {
+    + enabled, scheme
+    + bootstrapReplications, sobolBatchCount
+  }
+
+  class RiskEstimate <<struct>> {
+    + value, standardError
+  }
+
+  class MonteCarloErrorPolicy <<utility>> {
+    + {static} prepareSamples(...)
+    + {static} varStandardError(...)
+    + {static} esStandardError(...)
+  }
+
+  RiskCalculator --> StandardErrorOptions
+  RiskCalculator ..> MonteCarloErrorPolicy
+  RiskCalculator ..> RiskEstimate
+}
+
+package "Aleatoriedad" as PKG_RNG {
+  interface RandomGenerator
+  class MersenneTwisterGen
+  class BoostSobolGenerator {
+    + skip(steps)
+  }
+  class BrownianBridge {
+    + transformToStandardNormals(sobolZ, impliedZ)
+  }
+  class MathUtils {
+    + {static} inverseNormalCDF(p)
+  }
+
+  RandomGenerator <|.. MersenneTwisterGen
+  RandomGenerator <|.. BoostSobolGenerator
+  BoostSobolGenerator ..> MathUtils
+  BoostSobolGenerator ..> BrownianBridge : pipeline Sobol
+}
+
+SimConfig -down-> MonteCarloEngine : (1) configura
+MonteCarloEngine -down-> RiskCalculator : (2) devuelve
+
+PKG_RNG -[hidden]left- MonteCarloEngine
+InterestRateModelRef -[hidden]right- MonteCarloEngine
+PortfolioRef -[hidden]down- MonteCarloEngine
+
+MonteCarloEngine ..> PKG_RNG : usa RNG
+MonteCarloEngine ..> BrownianBridge : bridge (Sobol)
+MonteCarloEngine ..> PortfolioRef : simula PnL
+MonteCarloEngine ..> InterestRateModelRef : tipos (opc.)
+
+note bottom of MonteCarloEngine
+  **runBatchImpl (por nucleo)**
+  Cholesky Z_corr = L * Z_indep
+  MT / antiteticas / Sobol+bridge
+  simulatePathPnL + VaR/ES (+ SE opcional)
+  numFactores = numActivos + (rateModel ? 1 : 0)
+end note
+
+note right of BrownianBridge
+  Solo con rngType = Sobol.
+  Engine genera N(0,1) con BoostSobolGenerator
+  y aplica bridge por factor antes de Cholesky.
+end note
+
+note bottom of PortfolioRef
+  Clase Portfolio (diagrama dominio)
+end note
+
+note bottom of InterestRateModelRef
+  InterestRateModel / HullWhiteModel
+  (diagrama dominio)
+end note

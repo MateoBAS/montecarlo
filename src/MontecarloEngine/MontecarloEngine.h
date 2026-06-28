@@ -15,6 +15,11 @@ enum class RNGType {
     Sobol
 };
 
+enum class MatrixStorageLayout {
+    RowMajor,
+    ColMajor
+};
+
 struct SimConfig {
     int totalSims;
     double totalTime;
@@ -28,6 +33,13 @@ struct SimConfig {
     bool computeStandardErrors = false;
     int bootstrapReplications = 256;
     int sobolBatchCount = 32;
+
+    // Semilla base del RNG (MT/antitéticas: rngSeed + índice de núcleo; Sobol: desplazamiento inicial).
+    int rngSeed = 1234;
+
+    // Geometría Z: (numFactores × numPasos). RowMajor en producción.
+    // ColMajor: mismo pipeline, distinto StorageOrder de Eigen (solo benchmark de layout).
+    MatrixStorageLayout matrixLayout = MatrixStorageLayout::RowMajor;
 };
 
 class MonteCarloEngine {
@@ -35,9 +47,15 @@ public:
     static RiskCalculator run(const Portfolio& portfolio, const SimConfig& config);
 
 private:
-    static std::vector<double> runBatch(int sims, double time, int steps, 
-                                        const Portfolio& port, const Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>& corrMatrix,
-                                        const InterestRateModel* rateModel, int seed, RNGType rngType);
+    template<int StorageOrder>
+    static RiskCalculator runWithLayout(const Portfolio& portfolio, const SimConfig& config);
+
+    template<int StorageOrder>
+    static std::vector<double> runBatchImpl(
+        int sims, double time, int steps,
+        const Portfolio& port,
+        const Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, StorageOrder>& L,
+        const InterestRateModel* rateModel, int seed, RNGType rngType, int rngSeed);
 };
 
 #endif

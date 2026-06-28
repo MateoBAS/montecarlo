@@ -1,5 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
+from pathlib import Path
+
+SCRIPT_DIR = Path(__file__).resolve().parent
 
 # --- 1. CONFIGURACIÓN DE LA SIMULACIÓN ---
 np.random.seed(41)
@@ -74,5 +77,5 @@ ax2.grid(True, linestyle="--", alpha=0.5)
 
 # Ajuste automático del lienzo y guardado en formato vectorial para LaTeX
 plt.tight_layout()
-plt.savefig("simulacion_montecarlo2.pdf", bbox_inches="tight")
+plt.savefig(SCRIPT_DIR / "simulacion_montecarlo2.pdf", bbox_inches="tight")
 plt.show()

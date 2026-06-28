@@ -1,5 +1,8 @@
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
+from pathlib import Path
+
+SCRIPT_DIR = Path(__file__).resolve().parent
 
 # Lista de tareas realistas adaptadas al TFM (Código, (Semana de inicio, Duración en semanas), Color)
 tasks_raw = [
@@ -78,5 +81,5 @@ ax.grid(True, axis='x', linestyle='--', alpha=0.4)
 plt.subplots_adjust(left=0.32) 
 
 # Guardar la imagen con alta resolución
-plt.savefig('Gantt_TFM.png', dpi=300, bbox_inches='tight')
+plt.savefig(SCRIPT_DIR / 'Gantt_TFM.png', dpi=300, bbox_inches='tight')
 plt.show()
