@@ -1,4 +1,4 @@
-// --- Portfolio.h ---
+
 #pragma once
 #include <vector>
 #include <memory>
@@ -17,12 +17,12 @@ struct Position {
 class Portfolio {
 private:
     std::vector<Position> positions;
-    double initialValue = 0.0; 
+    double initialValue = 0.0;
 
 public:
     void addPosition(std::shared_ptr<Asset> asset, double quantity);
-    
-    double getInitialValue() const { return initialValue; } 
+
+    double getInitialValue() const { return initialValue; }
     size_t getNumAssets() const;
 
     template<typename Derived>
@@ -30,7 +30,7 @@ public:
                            const Eigen::MatrixBase<Derived>& Z_matrix,
                            const std::vector<double>& ratePath,
                            const InterestRateModel* rateModel) const {
-        
+
         if (Z_matrix.rows() != static_cast<int>(positions.size())) {
             throw std::invalid_argument("El numero de filas en Z_matrix debe coincidir con los activos del portfolio.");
         }
@@ -51,8 +51,7 @@ public:
         }
 
         double discountedValue = futureValue * discountFactor;
-        
-        // Uso directo de la variable precalculada (Evita el bucle for O(N))
-        return discountedValue - initialValue; 
+
+        return discountedValue - initialValue;
     }
 };

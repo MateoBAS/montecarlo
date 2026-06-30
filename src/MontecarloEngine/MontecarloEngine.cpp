@@ -60,7 +60,7 @@ template<int StorageOrder>
 void applyCorrelation(SimMatrix<StorageOrder>& Z_corr,
                       const SimMatrix<StorageOrder>& Z_indep,
                       const SimMatrix<StorageOrder>& L) {
-    // GEMM de Eigen (BLAS) en un solo paso; más rápido que bucles fila/columna manuales.
+
     Z_corr.noalias() = L * Z_indep;
 }
 
@@ -80,7 +80,7 @@ void extractRateShocks(const SimMatrix<StorageOrder>& Z_corr,
     }
 }
 
-}  // namespace
+}
 
 template<int StorageOrder>
 RiskCalculator MonteCarloEngine::runWithLayout(const Portfolio& portfolio,

@@ -29,16 +29,12 @@ struct SimConfig {
     RNGType rngType = RNGType::MersenneTwister;
     std::shared_ptr<InterestRateModel> rateModel = nullptr;
 
-    // Errores estándar de VaR/ES (desactivado por defecto por coste computacional).
     bool computeStandardErrors = false;
     int bootstrapReplications = 256;
     int sobolBatchCount = 32;
 
-    // Semilla base del RNG (MT/antitéticas: rngSeed + índice de núcleo; Sobol: desplazamiento inicial).
     int rngSeed = 1234;
 
-    // Geometría Z: (numFactores × numPasos). RowMajor en producción.
-    // ColMajor: mismo pipeline, distinto StorageOrder de Eigen (solo benchmark de layout).
     MatrixStorageLayout matrixLayout = MatrixStorageLayout::RowMajor;
 };
 

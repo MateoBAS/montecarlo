@@ -35,7 +35,7 @@ BOOST_AUTO_TEST_CASE(IndependentMeanUsesCLT) {
 }
 
 BOOST_AUTO_TEST_CASE(AntitheticUsesPooledPairSamples) {
-    // Formato del engine: [primario, antitetico, primario, antitetico, ...]
+
     const std::vector<double> paired = {-1000.0, 500.0, -800.0, 400.0, 0.0, 0.0};
 
     StandardErrorOptions options;

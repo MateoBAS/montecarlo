@@ -36,4 +36,4 @@ public:
     void skip(unsigned long long steps);
 };
 
-#endif // RANDOM_GENERATOR_H
+#endif 

@@ -19,14 +19,12 @@ double empiricalQuantile(std::span<const double> sortedSamples, double confidenc
     return sortedSamples[index];
 }
 
-}  // namespace
+}
 
 std::vector<double> MonteCarloErrorPolicy::prepareSamples(std::span<const double> pnls,
                                                           ErrorSampleScheme scheme) {
     (void)scheme;
-    // Las muestras ya llegan listas para métricas:
-    // - Independent / AntitheticPaired: PnL en bruto (antitéticas: [Z1,-Z1,Z2,-Z2,...])
-    // - SobolBatchMeans: PnL crudo (el error usa lotes aparte)
+
     return {pnls.begin(), pnls.end()};
 }
 
@@ -163,7 +161,7 @@ std::vector<double> resampleAntitheticPairs(std::span<const double> pairedPnls,
     return resampled;
 }
 
-}  // namespace
+}
 
 double MonteCarloErrorPolicy::pairedVarStandardError(std::span<const double> pairedPnls,
                                                      double confidenceLevel,

@@ -3,9 +3,9 @@
 #include <vector>
 
 enum class ErrorSampleScheme {
-    Independent,      // MT: muestras i.i.d.
-    AntitheticPaired, // pares (Z,-Z) en bruto; VaR/ES sobre 2N; bootstrap por pares
-    SobolBatchMeans   // QMC: error por varianza entre lotes
+    Independent,
+    AntitheticPaired,
+    SobolBatchMeans
 };
 
 struct StandardErrorOptions {

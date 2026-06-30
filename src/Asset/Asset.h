@@ -38,16 +38,13 @@ public:
     std::string getName() const { return name; }
     double getInitialPrice() const { return initialPrice; }
 
-    // Hot path: valor terminal descontable (payoff o precio final del activo).
     virtual double simulateFinalValue(double totalTime, int numSteps,
                                       const Eigen::Ref<const Eigen::RowVectorXd>& z_shocks,
                                       const std::vector<double>& ratePath) const = 0;
 
-    // Cold path: trayectoria completa o mínima para tests y análisis.
     virtual std::vector<double> generatePath(double totalTime, int numSteps,
                                              const Eigen::Ref<const Eigen::RowVectorXd>& z_shocks,
                                              const std::vector<double>& ratePath) const = 0;
 
-    // Indica si generatePath materializa precios intermedios (p. ej. GBM).
     virtual bool recordsIntermediatePrices() const { return false; }
 };

@@ -6,4 +6,4 @@ public:
     static double inverseNormalCDF(double p);
 };
 
-#endif // MATH_UTILS_H
+#endif 

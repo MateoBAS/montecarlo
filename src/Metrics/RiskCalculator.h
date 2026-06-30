@@ -34,4 +34,4 @@ public:
     RiskEstimate estimateMeanPnL() const;
 };
 
-#endif // RISK_CALCULATOR_H
+#endif
