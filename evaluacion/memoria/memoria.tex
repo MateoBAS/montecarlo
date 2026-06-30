@@ -1,10 +1,10 @@
 Los criterios de aceptación \texttt{CA-01}--\texttt{CA-07} (Tabla~\ref{tab:criterios_aceptacion}) operacionalizan la verificación de estos objetivos en la campaña experimental del Capítulo~6.
-\documentclass[11pt]{article} % Tamaño de letra 11pt
+\documentclass[11pt]{article}
 
-\usepackage[top=2.5cm, bottom=2.5cm, left=2.5cm, right=2.5cm]{geometry} % Márgenes
+\usepackage[top=2.5cm, bottom=2.5cm, left=2.5cm, right=2.5cm]{geometry}
 
 \usepackage{setspace}
-\setstretch{1.15} % Interlineado 1.15
+\setstretch{1.15}
 
 \usepackage{amsmath}
 \usepackage{amsfonts}
@@ -21,20 +21,18 @@ Los criterios de aceptación \texttt{CA-01}--\texttt{CA-07} (Tabla~\ref{tab:crit
 \usepackage{cleveref}
 \usepackage{array}
 \usepackage{verbatim}
-\usepackage{xcolor}   % Para colores en dibujos
-\usepackage{tikz}     % Para el dibujo de la barra
-\usepackage{pdfpages}  % Para insertar PDFs
-\usepackage{booktabs} % Para tablas profesionales
-\usepackage{tabularx} % Para tablas con ancho controlado
-\usepackage{eurosym}  % Para el símbolo del Euro
+\usepackage{xcolor}
+\usepackage{tikz}
+\usepackage{pdfpages}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{eurosym}
 \usepackage[style=numeric-comp, sorting=none]{biblatex}
-%\usepackage[spanish]{babel}
 \addbibresource{bibliografia.bib}
 
 \usepackage{listings}
 \usepackage{xcolor}
 
-% Configuración de colores para C++
 \definecolor{codegreen}{rgb}{0,0.6,0}
 \definecolor{codegray}{rgb}{0.5,0.5,0.5}
 \definecolor{codesubtle}{rgb}{0.3,0.4,0.5}
@@ -57,20 +55,20 @@ Los criterios de aceptación \texttt{CA-01}--\texttt{CA-07} (Tabla~\ref{tab:crit
 
 \begin{document}
 
-\pagenumbering{gobble} % Oculta numeración
+\pagenumbering{gobble}
 \begin{titlepage}
-  \AddToShipoutPictureBG*{%
-    \put(0,0){%
-      \includegraphics[width=\paperwidth,height=\paperheight]{Fig1.pdf}%
-    }%
+  \AddToShipoutPictureBG*{
+    \put(0,0){
+      \includegraphics[width=\paperwidth,height=\paperheight]{Fig1.pdf}
+    }
   }
-  \mbox{} % Página vacía con solo el fondo
+  \mbox{}
 \end{titlepage}
 
 \clearpage
-\pagenumbering{arabic}   % Empieza numeración arábiga
-\setcounter{page}{1}     % Desde la página 1
-\pagestyle{plain}        % Asegura que los números de página se muestren
+\pagenumbering{arabic}
+\setcounter{page}{1}
+\pagestyle{plain}
 
 \newpage
 
@@ -116,26 +114,17 @@ Overall, this work demonstrates that a carefully designed classical Monte Carlo 
 
 \newpage
 
-% --- BLOQUE 1: INTRODUCCIÓN Y CONTEXTO ---
 
-% --- BLOQUE 1: INTRODUCCIÓN, ESTADO DE LA CUESTIÓN Y METODOLOGÍA ---
 
-%ASPECTOS IMPORTANTES:
-%Comentar que un buen criterio de convergencia es otro punto que favorece la optimización y disminución del número de simulaciones, pero que debido a los fines académicos de este motor, no se implementa (en la mayoría de escenarios, me interesa estudiar cómo trabaja el motor en función del número de simulaciones, por lo que, poder tener esto como parámmetro en lugar de dejárselo al criterio de convergencia da mucho juego para estudiar el comportamiento del motor).
 
-%Creo que en fundamentos teóricos, entraría bien un pequeño apartado que explique los tipos de activos con los que vamos a trabajar (de esta forma, indicamos que hay 3 dimensiones conceptuales diferentes: La parte de mercados, la parte de métricas y algoritmos y la parte de optimización, que eso se evalúa en la rúbrica. Más adelante, debemos seguir trabajando estos 3 frentes)
 
-%Para hacer coincidir el cronograma con el presupuesto, hay que poner 3 meses para los portátiles y licencias, en lugar de 4.
 
-%Tengo que hacer los códigos estos de python para generar resultados comparables
 
-%Unificar notación. Por ejemplo P&L o PnL
 
-%Repasar presupuesto. Estamos usando al final las máquinas o no??
 
 \section{Introducción}
 
-El método de Monte Carlo, formalizado a mediados del siglo XX como una técnica de muestreo estadístico para resolver problemas físicos complejos \cite{metropolis1949monte, ulam1976adventures, segre1970fermi}, encontró su primera aplicación en la ingeniería financiera en 1977 de la mano de Phelim Boyle \cite{boyle1977options}. Boyle demostró que la simulación de múltiples trayectorias aleatorias era la solución idónea para la valoración de opciones cuando los modelos matemáticos cerrados tradicionales, como la fórmula de Black-Scholes, resultaban insuficientes ante la complejidad y las fricciones reales del mercado. 
+El método de Monte Carlo, formalizado a mediados del siglo XX como una técnica de muestreo estadístico para resolver problemas físicos complejos \cite{metropolis1949monte, ulam1976adventures, segre1970fermi}, encontró su primera aplicación en la ingeniería financiera en 1977 de la mano de Phelim Boyle \cite{boyle1977options}. Boyle demostró que la simulación de múltiples trayectorias aleatorias era la solución idónea para la valoración de opciones cuando los modelos matemáticos cerrados tradicionales, como la fórmula de Black-Scholes, resultaban insuficientes ante la complejidad y las fricciones reales del mercado.
 
 En la gestión de riesgos contemporánea, esta limitación de los enfoques analíticos tradicionales ya no es un reto aislado, sino un problema estructural. El cálculo de métricas agregadas como el Value at Risk (VaR) \cite{jpmorgan1994riskmetrics} y el Expected Shortfall (ES) \cite{acerbi2002coherence} para carteras de trading modernas exige herramientas capaces de capturar dependencias no lineales y distribuciones de activos con colas pesadas. En este escenario, el método de Monte Carlo se consolida como el estándar de la industria, trasladando el desafío desde el plano puramente analítico hacia una estrategia combinada entre estadística e ingeniería de software de alto rendimiento.
 
@@ -180,7 +169,7 @@ El trabajo se circunscribe al diseño e implementación de un motor Monte Carlo 
 
 \begin{itemize}
     \item Datos de mercado reales. Los parámetros de los modelos (volatilidades, correlaciones, curva de tipos, strikes, barreras, etc.) se definen de forma sintética o calibrada de manera simplificada. No se contempla una pipeline completa de calibración histórica ni de mercado en tiempo real.
-    \item Universo de instrumentos. El motor no cubre el espectro completo de productos financieros: no incluye, por ejemplo, opciones americanas, derivados de crédito, swaps u otros exóticos. 
+    \item Universo de instrumentos. El motor no cubre el espectro completo de productos financieros: no incluye, por ejemplo, opciones americanas, derivados de crédito, swaps u otros exóticos.
     \item Modelización de tipos de interés. Únicamente se emplea el modelo Hull–White de un factor. No se abordan modelos alternativos (CIR, LIBOR market model, modelos multifactoriales más generales) ni el riesgo de crédito o de contraparte.
     \item Supuestos del modelo. Se asume movimiento browniano geométrico para los subyacentes, volatilidades y correlaciones constantes en el horizonte de simulación, y ausencia de saltos, fricciones de mercado, costes de transacción o restricciones de liquidez.
     \item Paralelismo y hardware. La paralelización se limita a memoria compartida en CPU (hilos). No se explora ejecución distribuida, aceleración en GPU ni optimizaciones específicas de despliegue en entornos cloud.
@@ -235,9 +224,9 @@ La intuición detrás del método se entiende a la perfección si nos planteamos
 
 Intentar responder a esto mediante fórmulas matemáticas tradicionales es casi imposible debido al enorme número de combinaciones potenciales de las cartas y a la naturaleza no lineal de las reglas del juego. Sin embargo, el método de Monte Carlo propone una alternativa mucho más sencilla: si jugamos $100$ partidas completas registrando cuántas de ellas ganamos, la frecuencia relativa obtenida nos ofrecerá una estimación directa de la probabilidad de victoria sin necesidad de resolver ninguna fórmula sobre el papel.
 
-Este muestreo empírico permite resolver también problemas matemáticos abstractos como la estimación del número $\pi$. 
+Este muestreo empírico permite resolver también problemas matemáticos abstractos como la estimación del número $\pi$.
 
-Imaginemos un cuadrado de lado $2$ (con un área total de $4$) que encierra perfectamente a un círculo de radio $1$ (con un área de $\pi$) como se muestra en la Figura \ref{fig:pi_montecarlo} (a). Si lanzamos un dardo de forma completamente aleatoria sobre el cuadrado, la probabilidad de que impacte dentro del círculo viene determinada por la proporción entre ambas áreas, es decir, $\pi/4$. 
+Imaginemos un cuadrado de lado $2$ (con un área total de $4$) que encierra perfectamente a un círculo de radio $1$ (con un área de $\pi$) como se muestra en la Figura \ref{fig:pi_montecarlo} (a). Si lanzamos un dardo de forma completamente aleatoria sobre el cuadrado, la probabilidad de que impacte dentro del círculo viene determinada por la proporción entre ambas áreas, es decir, $\pi/4$.
 
 Si disparamos un número masivo $N$ de dardos independientes y contamos cuántos de ellos ($N_{\text{dentro}}$) caen dentro de la diana (como se muestra en la Figura \ref{fig:pi_montecarlo} (b)), la proporción de aciertos se convierte en nuestro estimador muestral:
 
@@ -258,11 +247,11 @@ Despejando de la ecuación anterior, el valor de $\pi$ se puede aproximar de for
 \pi \approx 4 \times \frac{N_{\text{dentro}}}{N}
 \end{equation}
 
-Este experimento demuestra la verdadera esencia del método de Monte Carlo: transformar un problema de cálculo continuo analítico (generalmente complejo) en un problema de conteo estadístico discreto (computacionalmente abordable). 
+Este experimento demuestra la verdadera esencia del método de Monte Carlo: transformar un problema de cálculo continuo analítico (generalmente complejo) en un problema de conteo estadístico discreto (computacionalmente abordable).
 
 \subsubsection{Formalismo para cálculo de VaR y ES con Monte Carlo}
 
-En el mundo de la gestión de riesgos, el ``área'' multidimensional que se pretende medir ya no es un círculo plano, sino la distribución de pérdidas y ganancias (P\&L) de una cartera de trading en un horizonte temporal futuro $T$ (por ejemplo, a 1 día o 10 días vista). 
+En el mundo de la gestión de riesgos, el ``área'' multidimensional que se pretende medir ya no es un círculo plano, sino la distribución de pérdidas y ganancias (P\&L) de una cartera de trading en un horizonte temporal futuro $T$ (por ejemplo, a 1 día o 10 días vista).
 
 Matemáticamente, si la cartera está compuesta por $d$ activos financieros correlacionados entre sí y expuestos a factores dinámicos como las curvas de tipos de interés modelizadas mediante el proceso de Hull-White \cite{hull1990pricing}, su estado futuro dependerá de un vector multidimensional $\mathbf{S}_T = (S_T^1, S_T^2, \dots, S_T^d)^T$, donde cada componente $S_T^j$ representa explícitamente el precio o valor del activo $j$ en el horizonte temporal $T$. El valor final de la cartera viene determinado por una función de impacto financiero o modelo de valoración de mercado $V_T = f(\mathbf{S}_T)$, de modo que la ganancia o pérdida neta se define como $\Delta V = V_T - V_0$, siendo $V_0$ el valor inicial y conocido de la cartera.
 
@@ -271,7 +260,7 @@ Para calcular de forma exacta el riesgo de esta cartera, la estadística exige r
 \begin{equation}
 \mathbb{E}[g(\Delta V)] = \int_{\mathbb{R}^d} g(f(\mathbf{S}_T) - V_0) \, p(\mathbf{S}_T) \, d\mathbf{S}_T
 \end{equation}
-donde $g(\cdot)$ representa la función de transformación asociada a la métrica que se desea obtener, como las funciones indicadoras necesarias para extraer el VaR o el ES. 
+donde $g(\cdot)$ representa la función de transformación asociada a la métrica que se desea obtener, como las funciones indicadoras necesarias para extraer el VaR o el ES.
 
 El problema crítico es que, cuando el número de activos ($d$) crece o los contratos presentan pagos fuertemente no lineales, esta integral se vuelve matemáticamente intratable. Los métodos de integración numérica tradicionales presentan un coste computacional que escala de forma exponencial por cada nueva dimensión (activo) que se añade al problema. Esta limitación hace inviable su cálculo dentro de las ventanas temporales exigidas en una sala de negociación real.
 
@@ -317,7 +306,6 @@ En este contexto, obtener estimaciones robustas del ES mediante Monte Carlo clá
 
 \subsection{Estado del Arte}
 
-%A partir de esta necesidad crítica —obtener la máxima precisión posible en las colas de riesgo sin incurrir en tiempos de cálculo prohibitivos— surge la motivación principal del presente Trabajo de Fin de Máster. Las páginas siguientes estudian cómo abordar este problema desde dos perspectivas complementarias: por un lado, mejorando la eficiencia estadística de las simulaciones mediante técnicas de reducción de varianza basadas en secuencias de baja discrepancia de Sobol y puentes brownianos; por otro, optimizando la ejecución computacional mediante implementaciones de alto rendimiento en C++ diseñadas para aprovechar de forma eficiente la arquitectura hardware moderna.
 
 Con el objetivo de fundamentar el estado del arte con el máximo rigor empírico posible, se ha realizado un análisis bibliométrico de la literatura cuantitativa en finanzas.
 Los datos se han extraído de forma programática mediante la API REST pública de \textit{OpenAlex}\footnote{\url{https://api.openalex.org/works}} \cite{openalex2022}, accediendo al catálogo abierto de trabajos académicos indexados por año de publicación (\texttt{group\_by=publication\_year}) y filtrando el intervalo 1975--2025.
@@ -343,13 +331,13 @@ Paralelamente, la curva de eficiencia computacional exhibe un ascenso marcado de
 
 \subsubsection{El pricing analítico y el Monte Carlo clásico (1975--2008)}
 
-Como muestra la curva de trazo discontinuo gris (\textit{Pricing}), las tres décadas posteriores a la publicación del modelo de Black-Scholes-Merton estuvieron dominadas por la búsqueda de soluciones analíticas cerradas. Modelos estructurales como Vasicek (1977) \cite{vasicek1977equilibrium} o Hull-White (1990) \cite{hull1990pricing} para tipos de interés, y Heston (1993) \cite{heston1993closed} o Dupire (1994) \cite{dupire1994pricing} para volatilidad estocástica y local, competían por ofrecer fórmulas directas. 
+Como muestra la curva de trazo discontinuo gris (\textit{Pricing}), las tres décadas posteriores a la publicación del modelo de Black-Scholes-Merton estuvieron dominadas por la búsqueda de soluciones analíticas cerradas. Modelos estructurales como Vasicek (1977) \cite{vasicek1977equilibrium} o Hull-White (1990) \cite{hull1990pricing} para tipos de interés, y Heston (1993) \cite{heston1993closed} o Dupire (1994) \cite{dupire1994pricing} para volatilidad estocástica y local, competían por ofrecer fórmulas directas.
 
 Sin embargo, a medida que la ingeniería financiera sofisticaba los productos estructurados (opciones de trayectoria dependiente, exóticas y multi-activo), la literatura comenzó a chocar contra la barrera de la intratabilidad matemática. Fue la publicación seminal de Phelim Boyle (1977) \cite{boyle1977options} la que demostró que el método de Monte Carlo era la única alternativa viable para romper esta rigidez en la valoración de derivados complejos. No obstante, como refleja la gráfica, la literatura de \textit{Pricing} alcanzó su cénit absoluto a principios de la década de los 2000 y experimentó un desplome estructural tras la crisis de 2008, marcando el agotamiento definitivo de las soluciones cerradas analíticas.
 
 \subsubsection{La era del riesgo regulatorio y el colapso del supuesto de normalidad (2008--2015)}
 
-De forma inversa al declive del \textit{Pricing}, la curva de puntos naranja (VaR) registra un ascenso vertical que se inicia con la publicación del documento técnico \textit{RiskMetrics} por J.P. Morgan en 1994 \cite{jpmorgan1994riskmetrics} y la enmienda de Basilea de 1996 \cite{bcbs1996amendment}, consolidándose en Basilea II (2004) \cite{bcbs2004basel2}. En esta fase, el método de Monte Carlo mutó su objetivo principal: ya no se utilizaba de forma aislada para valorar una opción individual, sino para generar escenarios macroeconómicos conjuntos que permitieran calcular el VaR de carteras globales. 
+De forma inversa al declive del \textit{Pricing}, la curva de puntos naranja (VaR) registra un ascenso vertical que se inicia con la publicación del documento técnico \textit{RiskMetrics} por J.P. Morgan en 1994 \cite{jpmorgan1994riskmetrics} y la enmienda de Basilea de 1996 \cite{bcbs1996amendment}, consolidándose en Basilea II (2004) \cite{bcbs2004basel2}. En esta fase, el método de Monte Carlo mutó su objetivo principal: ya no se utilizaba de forma aislada para valorar una opción individual, sino para generar escenarios macroeconómicos conjuntos que permitieran calcular el VaR de carteras globales.
 
 La crisis de 2008 supuso un punto de ruptura bibliométrico. Los modelos paramétricos de VaR basados en matrices de varianza-covarianza demostraron ser incapaces de capturar los eventos de cola. La literatura académica reaccionó volcándose en el Expected Shortfall, cuya curva (línea continua azul) experimenta un crecimiento exponencial a partir de las primeras directrices del marco FRTB en 2013 \cite{bcbs2013frtb}. El paso normativo del VaR al 99\% al ES al 97.5\% supuso la consagración del método de Monte Carlo como estándar industrial, al ser el único enfoque metodológico capaz de integrar distribuciones de probabilidad no normales con colas pesadas y dependencias no lineales complejas.
 
@@ -369,7 +357,7 @@ Una de las primeras respuestas maduras en esta dirección fue propuesta por Heja
 
 De forma paralela a la aceleración de los tasadores internos, otra corriente de la literatura ha explorado el uso de redes neuronales para predecir directamente las métricas de riesgo sin necesidad de simular toda la distribución. En este ámbito, Chronopoulos, Raftapostolos y Kapetanios (2024) \cite{chronopoulos2024forecasting} propusieron arquitecturas profundas basadas en regresión de cuantiles para pronosticar el VaR, logrando capturar de forma nativa los clústeres de volatilidad y las colas pesadas de los datos de mercado sin imponer restricciones paramétricas previas. Sin embargo, la dependencia de la simulación tradicional sigue siendo un pilar fundamental incluso en los enfoques más disruptivos. Muestra de ello es el reciente trabajo de Barrera, Crépey, Gobet, Nguyen y Saadeddine (2026) \cite{barrera2026statistical}, quienes al formalizar el aprendizaje estadístico conjunto del VaR y el ES, concluyen que para que estas redes profundas aprendan a reaccionar ante escenarios de estrés de forma robusta, es obligatorio entrenarlas utilizando datos sintéticos generados previamente mediante un motor de Monte Carlo clásico.
 
-Esta transición desde los laboratorios académicos hasta las salas de negociación de la banca real queda perfectamente reflejada por García-Muñoz, Gunnesson y Elorza (2026) \cite{garcia2026deep}. En una investigación nacida en el seno del grupo BBVA, los autores analizan los retos prácticos de implementar técnicas de \textit{Deep Learning} para cumplir con las exigencias del marco regulatorio FRTB. Su estudio evidencia que, aunque el Machine Learning permite procesar la re-valoración masiva de carteras globales dentro de los límites de tiempo operativos del banco, la introducción de estos modelos genera un ``riesgo de modelo" crítico debido a la opacidad intrínseca de las estructuras de caja negra. 
+Esta transición desde los laboratorios académicos hasta las salas de negociación de la banca real queda perfectamente reflejada por García-Muñoz, Gunnesson y Elorza (2026) \cite{garcia2026deep}. En una investigación nacida en el seno del grupo BBVA, los autores analizan los retos prácticos de implementar técnicas de \textit{Deep Learning} para cumplir con las exigencias del marco regulatorio FRTB. Su estudio evidencia que, aunque el Machine Learning permite procesar la re-valoración masiva de carteras globales dentro de los límites de tiempo operativos del banco, la introducción de estos modelos genera un ``riesgo de modelo" crítico debido a la opacidad intrínseca de las estructuras de caja negra.
 
 Precisamente por este motivo, esta línea de trabajo no se ha considerado en el presente proyecto. Aunque el empleo de técnicas de \textit{Machine Learning} constituye una estrategia prometedora para reducir los tiempos de cálculo, su naturaleza aproximada y la pérdida de interpretabilidad asociada desvían el foco de los objetivos planteados. El propósito de este trabajo es analizar y optimizar el motor de cálculo desde una perspectiva algorítmica y computacional, identificando los factores que limitan su rendimiento y desarrollando técnicas que permitan acelerar su ejecución sin modificar el modelo financiero subyacente ni comprometer la trazabilidad y auditabilidad del proceso.
 
@@ -392,7 +380,7 @@ Por este motivo, la computación cuántica tampoco se ha considerado como una l�
 Frente a las líneas de investigación basadas en la opacidad del \textit{Machine Learning} o la inmadurez de la computación cuántica, la corriente principal de la industria financiera se ha concentrado en optimizar el método de Monte Carlo desde su propia raíz algorítmica y arquitectónica. Esta vertiente, responsable del auge vertical de la curva de eficiencia e infraestructura reflejada en el análisis bibliométrico, demuestra que el margen de mejora en sistemas de cómputo tradicionales sigue siendo crítico para el cumplimiento de normativas como FRTB.
 
 En el plano matemático, una de las palancas más extendidas para mejorar la eficiencia estadística del Monte Carlo---sin sustituir el tasador---consiste en reducir la varianza del estimador o, equivalentemente, alcanzar mayor precisión con el mismo número de escenarios.
-En este contexto, las secuencias de baja discrepancia de Sobol \cite{sobol1967on} combinadas con puentes brownianos son una de las principales vías del conocido cuasi-Monte Carlo \cite{boyle1997monte, glasserman2003monte}. Las variables antitéticas \cite{hammersley1956new}, por su parte, constituyen un mecanismo sencillo y de coste marginal que aprovecha la simetría de las leyes normales para estabilizar la estimación. 
+En este contexto, las secuencias de baja discrepancia de Sobol \cite{sobol1967on} combinadas con puentes brownianos son una de las principales vías del conocido cuasi-Monte Carlo \cite{boyle1997monte, glasserman2003monte}. Las variables antitéticas \cite{hammersley1956new}, por su parte, constituyen un mecanismo sencillo y de coste marginal que aprovecha la simetría de las leyes normales para estabilizar la estimación.
 
 Conjuntamente, estas técnicas constituyen el referente estándar en ingeniería financiera cuando el objetivo es aproximar cuantiles y medias de cola---como el VaR o el ES---con un presupuesto computacional acotado; el presente trabajo las adopta como núcleo metodológico y las desarrolla en los capítulos de diseño y resultados.
 
@@ -407,7 +395,7 @@ Este marco de optimización algorítmica y aprovechamiento del hardware tradicio
 \section{Metodología y Stack Tecnológico}
     \subsection{Marco metodológico de trabajo}
 
-Para el desarrollo del motor de simulación de Monte Carlo, opté por un ciclo de vida del software de carácter iterativo e incremental, adaptado específicamente a las necesidades de la ingeniería cuantitativa. Este enfoque me permitió mitigar el riesgo de arrastrar errores lógicos o de cálculo desde las fases tempranas, asegurando la robustez matemática del motor antes de comprometer esfuerzos en la optimización de bajo nivel. 
+Para el desarrollo del motor de simulación de Monte Carlo, opté por un ciclo de vida del software de carácter iterativo e incremental, adaptado específicamente a las necesidades de la ingeniería cuantitativa. Este enfoque me permitió mitigar el riesgo de arrastrar errores lógicos o de cálculo desde las fases tempranas, asegurando la robustez matemática del motor antes de comprometer esfuerzos en la optimización de bajo nivel.
 
 Aunque la implementación comenzó desde etapas tempranas, previamente se definieron los objetivos funcionales del sistema, los principales módulos que lo compondrían y las responsabilidades de cada uno de ellos. Esta planificación inicial sirvió como guía para mantener una arquitectura modular y escalable durante todo el desarrollo.
 
@@ -429,7 +417,7 @@ Con una versión funcional y validada del motor, la última fase se centró en l
 \end{enumerate}
 
 \subsubsection*{Uso de herramientas de IA generativa durante el desarrollo}
-Puesto que, en el flujo de trabajo se ha hecho uso de IA generativa, se incluye el anexo plantilla de uso responsable al final del documento. 
+Puesto que, en el flujo de trabajo se ha hecho uso de IA generativa, se incluye el anexo plantilla de uso responsable al final del documento.
 
 \subsection{Especificación de requisitos}
 
@@ -461,7 +449,7 @@ Los requisitos no funcionales delimitan las restricciones operativas, la eficien
 \begin{itemize}
     \item \textbf{Rendimiento computacional y análisis experimental:}
     El motor debe demostrar escalabilidad computacional y convergencia estadística medibles sobre el escenario \texttt{benchmark1} y el entorno de hardware de referencia (Tabla~\ref{tab:hardware}). En lugar de fijar \emph{service level agreements} (SLA) absolutos de latencia en producción ---ajenos al alcance académico del TFM---, se establecen criterios de aceptación numéricos ex ante en la Tabla~\ref{tab:criterios_aceptacion}, vinculados a la \textit{suite} de pruebas (\texttt{integration\_tests}, \texttt{standard\_error\_tests}) y contrastados empíricamente en el Capítulo~6. Los benchmarks evalúan el comportamiento del generador de números aleatorios (RNG), la eficiencia del paralelismo bajo la ley de Amdahl \cite{amdahl1967validity} y el impacto del layout de memoria.
-    
+
     \item \textbf{Gestión de la compilación y portabilidad (CMake):}
     El proyecto requiere el uso de \texttt{CMake} \cite{cmake_software} para automatizar y estructurar la construcción del ejecutable y la \textit{suite} de pruebas unitarias. No obstante, no se utilizará un gestor automático de dependencias, por lo que de cara a la portabilidad sería necesario modificar alguna ruta en el \texttt{CMakeLists.txt} para localizar las librerías externas (modificar la ruta de dichas librerías) como \texttt{Boost} \cite{boost_libraries} y \texttt{Eigen} \cite{eigenweb}. El software cumple el requisito de sentar las bases analíticas para un despliegue multiplataforma e Integración Continua (CI), pero requiere una refactorización futura para eliminar dicho acoplamiento local.
 
@@ -470,7 +458,7 @@ Los requisitos no funcionales delimitan las restricciones operativas, la eficien
     \begin{itemize}
         \item \textbf{Persistencia optimizada:} El motor, cuando sea posible, solo debe almacenar en memoria el P\&L (\textit{Profit and Loss}) final acumulado por trayectoria para el cálculo de los percentiles, evitando la retención global de las matrices que contienen los paths completos.
         \item \textbf{Localidad de datos:} Se exige el uso de un almacenamiento en disposición por filas (\texttt{RowMajor}) para maximizar el acierto de la caché (\textit{cache hits}) del procesador, junto con la pre-reserva explícita de memoria en vectores y \textit{buffers} reutilizables dentro de cada batch de ejecución.
-        \item \textbf{Coste transitorio aceptado:} Se asume como restricción que, durante la valoración de carteras, se construirán vectores temporales para las trayectorias de cada activo. Esto implica que la memoria transitoria escalará de forma proporcional al tamaño de la cartera y al número de pasos temporales configurados. %AQUÍ CUIDADO TAMBIÉN
+        \item \textbf{Coste transitorio aceptado:} Se asume como restricción que, durante la valoración de carteras, se construirán vectores temporales para las trayectorias de cada activo. Esto implica que la memoria transitoria escalará de forma proporcional al tamaño de la cartera y al número de pasos temporales configurados.
     \end{itemize}
 \end{itemize}
 
@@ -543,13 +531,9 @@ Con el fin de no reinventar componentes numéricos complejos y garantizar la má
     \end{itemize}
 \end{itemize}
 
-%\subsubsection{Flujo e interfaz de entrada y salida de datos}
 
-%Una decisión clave en el diseño de la arquitectura fue el desacoplamiento total del núcleo del motor de cualquier sistema de archivos o formatos de serialización (como JSON o bases de datos). 
 
-%El núcleo del simulador (\texttt{MontecarloEngine.h}) está diseñado para operar estrictamente en memoria, recibiendo sus parámetros de entrada exclusivamente mediante la estructura \texttt{SimConfig} y los correspondientes objetos de tipo cartera y activos financieros. Este enfoque garantiza que el \textit{core} sea ultrarrápido y agnóstico respecto a la procedencia de los datos.
 
-%Por otro lado, la persistencia y la interfaz con el exterior se gestionan en la capa de pruebas e instrumentación (\texttt{test\_acciones.cpp}). Aquí, haciendo uso de los flujos estándar de C++ (\texttt{<iostream>} y \texttt{<fstream>}), se capturan las métricas de los \textit{benchmarks} de rendimiento y se exportan de forma nativa a archivos en formato CSV. Finalmente, este flujo se conecta con un entorno de análisis cuantitativo en \textit{Python}, donde mediante la librería \textit{Pandas} y entornos de \textit{Jupyter Notebooks} se realiza la lectura, tratamiento estadístico final y representación gráfica de las curvas de convergencia y distribución de pérdidas.
 
 \subsubsection{Entorno de desarrollo y cadena de herramientas (\textit{Toolchain})}
 
@@ -559,7 +543,6 @@ Para la construcción, compilación y depuración del sistema en un entorno loca
     \item \textbf{Sistema de Construcción:} El proceso es coordinado por \textbf{CMake} como generador de abstracción de alto nivel, el cual delega la compilación nativa en la herramienta \textbf{mingw32-make}.
     \item \textbf{Entorno de Desarrollo (IDE):} Todo el flujo de trabajo, la escritura del código y la inspección de variables del sistema se ha centralizado bajo el entorno \textbf{Visual Studio Code}, explotando sus extensiones nativas para C++ y CMake.
 \end{itemize}
-% --- BLOQUE 2: NÚCLEO TÉCNICO (El "Corazón" del TFM) ---
 
 \section{Diseño y Desarrollo de la Solución}
 
@@ -612,14 +595,14 @@ El orquestador central gobierna el ciclo de vida de la simulación sin violar el
 \begin{figure}[H]
     \centering
     \includegraphics[width=1\linewidth]{Fig6.pdf}
-    \caption{Diagrama UML de clases del \emph{motor de simulación}: configuración (\texttt{SimConfig}), orquestación (\texttt{MonteCarloEngine}), generación aleatoria (MT, antitéticas, Sobol y \texttt{BrownianBridge}) y cálculo de métricas de riesgo (\texttt{RiskCalculator}, \texttt{MonteCarloErrorPolicy}).}    
+    \caption{Diagrama UML de clases del \emph{motor de simulación}: configuración (\texttt{SimConfig}), orquestación (\texttt{MonteCarloEngine}), generación aleatoria (MT, antitéticas, Sobol y \texttt{BrownianBridge}) y cálculo de métricas de riesgo (\texttt{RiskCalculator}, \texttt{MonteCarloErrorPolicy}).}
     \label{fig:uml_engine}
 \end{figure}
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=1\linewidth]{Fig7.pdf}
-    \caption{Diagrama UML de clases del \emph{modelo de dominio}: jerarquía de activos (\texttt{Asset} y derivadas), agregación en cartera (\texttt{Portfolio}--\texttt{Position}) y modelado de tipos de interés (\texttt{InterestRateModel}, \texttt{HullWhiteModel}).}    
+    \caption{Diagrama UML de clases del \emph{modelo de dominio}: jerarquía de activos (\texttt{Asset} y derivadas), agregación en cartera (\texttt{Portfolio}--\texttt{Position}) y modelado de tipos de interés (\texttt{InterestRateModel}, \texttt{HullWhiteModel}).}
     \label{fig:uml_dominio}
 \end{figure}
 
@@ -732,7 +715,7 @@ Durante cada trayectoria Monte Carlo, la cartera recibe la matriz de shocks corr
 El cálculo agregado puede expresarse de forma esquemática como
 
 \begin{equation}
-V_T = 
+V_T =
 \sum_{k=1}^{M}
 q_k ,
 V_k(T),
@@ -742,7 +725,7 @@ donde $q_k$ representa la cantidad mantenida de cada instrumento y $V_k(T)$ su v
 Posteriormente, el PnL de la trayectoria se obtiene mediante
 
 \begin{equation}
-\text{PnL} = 
+\text{PnL} =
 V_T \cdot DF \cdot
 V_0,
 \label{eq:pnl}
@@ -993,7 +976,7 @@ Esta mayor uniformidad permite reducir el error de integración en numerosos pro
 \begin{figure}[H]
     \centering
     \includegraphics[width=1\linewidth]{Fig8.pdf}
-    \caption{Estimación de $\pi$ mediante lanzamiento de dardos: comparación entre muestreo pseudoaleatorio (a) y secuencias de Sobol (b) con $N = 2048$, mostrando la distribución más uniforme de la QMC.}    
+    \caption{Estimación de $\pi$ mediante lanzamiento de dardos: comparación entre muestreo pseudoaleatorio (a) y secuencias de Sobol (b) con $N = 2048$, mostrando la distribución más uniforme de la QMC.}
     \label{fig:pi_comparacion}
 \end{figure}
 
@@ -1065,7 +1048,6 @@ En la Fig. \ref{fig:comparativa_bucles} se muestra el ejemplo más sencillo que 
 \centering
 \small{\textbf{Variante 1: Almacenamiento por Columnas}}\\
 \vspace{1mm}
-% Forzamos \footnotesize específicamente para este bloque si no quieres cambiar el preámbulo global
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize]
 // colMajor(i,j) -> Salto en memoria
 for (int r = 0; r < reps; ++r) {
@@ -1079,7 +1061,7 @@ for (int r = 0; r < reps; ++r) {
 \vspace{-2mm}
 \footnotesize{\texttt{> Execution time: 30.28 s}\\ \textit{Menor localidad espacial (Cache misses).}}
 \end{minipage}
-\hfill 
+\hfill
 \begin{minipage}[t]{0.48\textwidth}
 \centering
 \small{\textbf{Variante 2: Almacenamiento por Filas}}\\
@@ -1111,7 +1093,7 @@ Además, dentro del bucle crítico de simulación (donde se ejecutan las millone
 
 Para evitar este cuello de botella, el software implementa una estrategia de \textbf{preasignación de memoria contigua} (\textit{flat memory structure}). Antes de arrancar la primera simulación, el motor calcula el tamaño exacto que requerirá toda la matriz de resultados basándose en los parámetros inyectados por \texttt{SimConfig}. Toda la memoria necesaria se reserva de golpe en un único bloque contiguo. Durante la simulación, el motor simplemente sobreescribe de forma directa las posiciones de memoria ya existentes mediante punteros y operaciones de indexación rápida.
 
-Esta disposición contigua de la memoria, sumada al uso de las estructuras optimizadas de \texttt{Eigen}, permite que el compilador active de forma automática la \textbf{vectorización por hardware} (\textit{Single Instruction Multiple Data}, SIMD). Gracias a esto, la CPU no procesa las trayectorias de los activos de una en una, sino que empaqueta múltiples valores en registros vectoriales anchos (AVX-2 o AVX-512) y ejecuta la dinámica matemática sobre 4 u 8 activos de manera simultánea en un único ciclo de reloj. %NO ME TERMINA DE GUSTAR ESTO LA VERDAD...
+Esta disposición contigua de la memoria, sumada al uso de las estructuras optimizadas de \texttt{Eigen}, permite que el compilador active de forma automática la \textbf{vectorización por hardware} (\textit{Single Instruction Multiple Data}, SIMD). Gracias a esto, la CPU no procesa las trayectorias de los activos de una en una, sino que empaqueta múltiples valores en registros vectoriales anchos (AVX-2 o AVX-512) y ejecuta la dinámica matemática sobre 4 u 8 activos de manera simultánea en un único ciclo de reloj.
 
 \paragraph{Paralelismo y concurrencia a nivel de proceso}
 
@@ -1164,10 +1146,10 @@ donde \(\alpha\) modeliza la contención sobre recursos compartidos y \(\beta\) 
 Asimismo, los procesadores actuales incorporan tecnologías de \emph{Simultaneous Multithreading} (SMT) \cite{tullsen1995simultaneous}, en las que varios hilos lógicos comparten un mismo núcleo físico. Como consecuencia, la capacidad efectiva de cómputo deja de crecer linealmente con el número de hilos disponibles. Dejando los detalles en el Apéndice B, se puede tratar de generalizar la USL al uso de SMT \cite{hill2008amdahl}, llegando a la siguiente expresión:
 
 \begin{equation}
-S(k) = 
-\begin{cases} 
+S(k) =
+\begin{cases}
 \frac{1}{(1 - P) + \frac{P}{k} + \beta(k - 1)} & \text{si } k \le N \\[1.5em]
-\frac{1}{(1 - P) + \frac{P}{k \cdot c} + \beta(k - 1)} & \text{si } N < k \le 2N 
+\frac{1}{(1 - P) + \frac{P}{k \cdot c} + \beta(k - 1)} & \text{si } N < k \le 2N
 \end{cases}
 \label{eq:amdahl_best}
 \end{equation}
@@ -1176,20 +1158,11 @@ donde $c$ cuantifica el rendimiento relativo del segundo hilo lógico respecto a
 Los benchmarks desarrollados en este proyecto permiten contrastar experimentalmente estas predicciones teóricas, evaluando la evolución del rendimiento al incrementar el número de cores tanto en escenarios reducidos como en carteras de mayor dimensión.
 
 
-% =========================================================================
-% CAPÍTULO 6: ANÁLISIS DE RESULTADOS EMPÍRICOS
-% =========================================================================
 
 \section{Análisis de Resultados Empíricos}
 
-%TEST QUE QUIERO HACER:
-%- Tests matemáticos
-%Test de convergencia. Ver cómo una misma cartera, con los tres métodos de generación de números, convergen mejor a los valores reales. Este test se presentará tanto para VaR como para ES y quiero también hacer un análisis cuantitativo de la varianza real, para el cual debo incluir un apéndice explicando la obtención de dichos errores.
-%También estaría bien ver cómo escala esto con la cantidad de activos que tenemos y con la dinámica de Hull-White activa. En teoría, como tenemos tres dimensiones $N_{activos}\times N_{paths\_activo}\times N_{simulaciones}$, por cada simulación que disminuyamos, deberíamos ver una disminución x.
 
-%Test de caché. Cambiamos las matrices de Eigen, por col y comparamos tiempos de ejecución para N simulaciones. Aquí, por simplificar, no pondría una gran cartera.
 
-%Test de escalabilidad. Aquí sí que vamos a por Amdahl a saco. Para ello, vamos a sacar dos gráficas. Una de ellas, con la cartera base, que y vemos qué tan bien paraleliza. La siguiente, analizaremos como mejora o empeora la situación cuando incorporamos nuevos activos.
 
 Este capítulo expone la evaluación empírica del motor de cálculo de riesgo multifactorial desarrollado. El objetivo es contrastar cuantitativamente las hipótesis de diseño planteadas en los capítulos previos ---en particular, los criterios de aceptación \texttt{CA-01}--\texttt{CA-07} de la Tabla~\ref{tab:criterios_aceptacion}---, dividiendo el análisis en dos dimensiones críticas: la eficiencia matemática (calidad y velocidad de convergencia de las métricas de riesgo) y la eficiencia computacional (impacto de las optimizaciones de bajo nivel y escalabilidad del paralelismo en C++).
 
@@ -1396,7 +1369,6 @@ El parámetro $c = 0{,}73$ no se estima en este benchmark, sino que se fija a pa
 Ese experimento auxiliar no forma parte del binario \texttt{integration\_tests.exe}, pero justifica por qué el modelo atenúa el aporte de cada hilo más allá de $N$ en lugar de extrapolar el escalado lineal de los núcleos físicos.
 En conjunto, la Figura~\ref{fig:paralelismo_speedup} muestra un motor sustancialmente paralelizable en la cartera de referencia, con buena eficiencia hasta saturar los núcleos físicos y ganancias marginales ---pero positivas--- en el tramo SMT, sin pretender acercarse al ideal lineal global ($S(k) = k$) que la ley de Amdahl proscribe cuando persiste una fracción serial $(1-P) \approx 7\,\%$.
 
-%COMENTAR ESCALADO CON ACTIVOS??
 
 \subsection{Discusión global y conclusiones del análisis}
 
@@ -1420,7 +1392,6 @@ Leídos en conjunto, los resultados validan el objetivo general del proyecto en 
 La modelización multi-activo con correlación y Hull--White produce estimaciones de cola estables y reproducibles; el diseño algorítmico del muestreo (Sobol, puentes brownianos, esquemas de error) mejora la eficiencia estadística sin sustituir el tasador; y las optimizaciones de ejecución (Eigen/BLAS, \texttt{matrixLayout}, \texttt{std::async}, profiling) hacen viable en CPU lo que, en un entorno interpretado, resultaría prohibitivo para los volúmenes de cómputo que describe la motivación del trabajo.
 En un despliegue real, el tiempo total combina las tres palancas: el modelo define \emph{qué} calcular; la reducción de varianza reduce cuántos escenarios hacen falta; y la ingeniería de bajo nivel comprime el coste de cada uno.
 
-% --- BLOQUE 3: GESTIÓN DEL PROYECTO (Económico y Temporal) ---
 
 \section{Planificación y metodología de trabajo}
 
@@ -1443,7 +1414,7 @@ De nuevo, se muestra al final del documento cómo se ha integrado el uso de IA g
 
 \subsection{Desglose de tareas y justificación de recursos}
 
-El proyecto se ha dimensionado para una dedicación total de 180 horas (6 ECTS), distribuidas de forma realista a lo largo de las distintas fases del ciclo de vida del software y la investigación. 
+El proyecto se ha dimensionado para una dedicación total de 180 horas (6 ECTS), distribuidas de forma realista a lo largo de las distintas fases del ciclo de vida del software y la investigación.
 
 \subsubsection{Estructura de Desglose de Trabajo (WBS/EDT)}
 A continuación, se detallan las tareas específicas que componen el proyecto, justificando la carga horaria asignada a cada una de ellas:
@@ -1492,8 +1463,6 @@ La secuenciación de las fases descritas se ha estructurado de manera lógica pa
 
 Dada la complejidad técnica y el límite estricto de tiempo (180 horas), se ha elaborado un plan de riesgos proactivo para identificar potenciales desviaciones y establecer planes de contingencia adecuados.
 
-% Fragmento LaTeX: matriz de riesgos del TFM
-% Requiere en el preámbulo: \usepackage{caption}
 
 \vspace{1em}
 \noindent
@@ -1543,7 +1512,6 @@ Escala cualitativa: probabilidad \textit{Alta / Media / Baja}; impacto \textit{A
 \label{tab:riesgos}
 \end{minipage}
 \vspace{1em}
- % Separación con la siguiente sección o texto
 
 \section{Presupuesto}
 \label{sec:presupuesto}
@@ -1613,7 +1581,7 @@ Google AI Pro \cite{google_ai_pricing} & 18,17 \euro & 3 meses & 54,51 \euro \\ 
 
 \subsection{Costes Indirectos y Suministros}
 
-Los costes indirectos representan los gastos estructurales necesarios para la ejecución del proyecto: suministro eléctrico, conectividad, licencias de sistemas operativos base y uso de espacios. 
+Los costes indirectos representan los gastos estructurales necesarios para la ejecución del proyecto: suministro eléctrico, conectividad, licencias de sistemas operativos base y uso de espacios.
 
 Para la determinación de esta partida, se ha adoptado un criterio de imputación por tipo fijo del 15\% sobre los costes directos totales. Esta cifra se fundamenta en un análisis comparativo entre el marco del Real Decreto 1098/2001 \cite{boe_rd1098_2001} y el Manual de I+D+i del CDTI \cite{cdti_manual_2025}, garantizando una cobertura realista de los gastos generales operativos.
 
@@ -1652,7 +1620,6 @@ IVA (21\%) & 1.520,03 \euro \\ \midrule
 \caption{Resumen consolidado del presupuesto total.}
 \label{tab:total}
 \end{table}
-% --- BLOQUE 4: CIERRE ACADÉMICO ---
 
 \section{Competencias y Relación Académica}
 
@@ -1663,17 +1630,17 @@ El desarrollo de este Trabajo de Fin de Máster constituye un ejercicio de conve
 El diseño e implementación del motor de simulación de Monte Carlo para el cálculo de VaR (\textit{Value at Risk}) y ES (\textit{Expected Shortfall}) se articula de manera directa en torno a cuatro asignaturas troncales del plan de estudios:
 
 \begin{enumerate}
-    \item \textbf{Programación de Altas Prestaciones:} 
+    \item \textbf{Programación de Altas Prestaciones:}
     Esta asignatura ha proporcionado el sustrato técnico y metodológico indispensable para la viabilidad del proyecto. La simulación de Monte Carlo es intensiva en cómputo, por lo que la aplicación de los estándares modernos de C++ (C++20), la gestión eficiente de la memoria a través de punteros inteligentes, el paso por referencia y la semántica de movimiento han sido críticos para minimizar la latencia. Asimismo, la automatización del proyecto mediante \texttt{CMake} y el uso de herramientas de perfilado e instrumentación de código para la detección de cuellos de botella provienen directamente de las competencias adquiridas en esta materia.
-    
-    \item \textbf{Algoritmos de Front Office:} 
+
+    \item \textbf{Algoritmos de Front Office:}
     En esta asignatura adquirí los conocimientos teóricos y prácticos sobre cómo el entorno de \textit{trading} y la estructuración de productos exigen algoritmos de valoración en tiempo real donde la velocidad de convergencia es crítica. Gracias a las técnicas de simulación cuantitativa estudiadas durante el curso, supe cómo abordar el desarrollo del motor implementando las secuencias de baja discrepancia de Sobol y los puentes brownianos. Aplicar estos conceptos avanzados me permitió acelerar la convergencia matemática del simulador, logrando que el cálculo de VaR y ES requiera un menor número de iteraciones. De este modo, traduje el enfoque práctico de la materia en optimizaciones medibles sobre \texttt{benchmark1}, relevantes para escenarios de recálculo intra-día pero sin implementar el pipeline operativo de producción descrito en las limitaciones del §1.3.
 
-    
-    \item \textbf{Algoritmos de Back Office:} 
+
+    \item \textbf{Algoritmos de Back Office:}
     Esta materia me aportó una visión profunda e indispensable sobre la gestión global de riesgos, el \textit{stress testing} y las exigencias de cumplimiento normativo bajo los marcos de Basilea III y IV. Lo aprendido en clase sobre la agregación de carteras y el control de riesgos me sirvió como guía para estructurar la salida estadística de mi motor con la rigurosidad que exige el sector. En lugar de limitarme a un cálculo matemático aislado, apliqué los criterios regulatorios estudiados para sistematizar la medición del VaR y el \textit{Expected Shortfall}, asegurándome de que la arquitectura modular diseñada sea capaz de soportar con solidez los procesos de fin de día (\textit{end-of-day processing}) que se ejecutan en una entidad financiera real.
-    
-    \item \textbf{Introducción a los Mercados Financieros:} 
+
+    \item \textbf{Introducción a los Mercados Financieros:}
     Esta materia aportó el contexto conceptual y el entendimiento del entorno económico sobre el cual opera el software. Para poder modelizar los factores de riesgo y simular las trayectorias de los activos, es imprescindible comprender la naturaleza de las variables financieras (volatilidad, rendimientos, tipos de interés) y el comportamiento de los diferentes productos subyacentes. La interpretación de los resultados del VaR y el ES carecería de sentido analítico sin la base teórica de esta asignatura sobre cómo se comportan los mercados y cómo impacta el riesgo de mercado en los balances financieros.
 \end{enumerate}
 
@@ -1688,8 +1655,6 @@ Más allá del conocimiento específico de las asignaturas, la ejecución autón
     \item \textbf{Planificación y gestión de proyectos:} Capacidad para estimar, secuenciar y mitigar los riesgos de un proyecto tecnológico complejo con una restricción temporal estricta de 180 horas, coordinando hitos de entrega y revisiones periódicas con la dirección académica.
 \end{itemize}
 
-% Fragmento LaTeX: conclusiones y líneas futuras.
-% Insertar como capítulo/sección final de la memoria, tras el capítulo de resultados.
 
 \section{Conclusiones y futuras líneas}
 
@@ -1784,7 +1749,7 @@ Ninguna de estas líneas invalida los resultados obtenidos; las sitúan, en camb
 
 \section*{Apéndice A: El Teorema del Límite Central y su papel en Monte Carlo}
 
-El método de Monte Carlo está completamente basado en el Teorema del Límite Central (TLC). Este teorema es la razón por la cual podemos fiarnos de la aleatoriedad para obtener respuestas numéricas precisas y es por ello, que voy a dedicar un apéndice a explicarlo de forma muy sencilla, para asegurar que el lector comprende la naturaleza del método. 
+El método de Monte Carlo está completamente basado en el Teorema del Límite Central (TLC). Este teorema es la razón por la cual podemos fiarnos de la aleatoriedad para obtener respuestas numéricas precisas y es por ello, que voy a dedicar un apéndice a explicarlo de forma muy sencilla, para asegurar que el lector comprende la naturaleza del método.
 
 Para ver la intuición matemática de forma clara, pensemos en un experimento cotidiano: lanzar dados. Imaginemos una variable aleatoria $X_i$ que representa el resultado de lanzar un único dado de seis caras no trucado, es decir, $X_i \in \{1, 2, \dots, 6\}$. La distribución de probabilidad de esta variable, que llamaremos $\rho(X_i)$, es completamente plana y uniforme: todos los resultados tienen exactamente la misma probabilidad de salir ($1/6$).
 
