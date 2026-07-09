@@ -22,15 +22,7 @@ Thumbs.db
 src/code_extractor.py
 src/codigo_proyecto.txt
 
-# ==========================================
-# Gráficas de generación (figuras finales en evaluacion/memoria)
-# ==========================================
 graphics/
-
-# ==========================================
-# Evaluación TFM (local, no subir a GitHub)
-# Excepción: memoria con figuras finales del TFM
-# ==========================================
 evaluacion/*
 !evaluacion/memoria/
 !evaluacion/memoria/**
